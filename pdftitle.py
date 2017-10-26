@@ -198,7 +198,7 @@ class TextOnlyInterpreter(PDFPageInterpreter):
         return
 
     def do_Tz(self, scale):
-        vervose_operator("PDF OPERATOR Tz: scale=", scale)
+        verbose_operator("PDF OPERATOR Tz: scale=", scale)
         self.mpts.Th = scale * 0.01
         return
 
@@ -255,7 +255,7 @@ class TextOnlyInterpreter(PDFPageInterpreter):
         return
 
     # text-showing operators
-    
+
     def do_Tj(self, string):
         verbose_operator("PDF operator Tj: string=", string)
         self.do_TJ([string])
@@ -334,7 +334,7 @@ class TextOnlyDevice(PDFDevice):
                     verbose("DECISION: move inside the current word")
                 if ts.Tf.is_vertical():
                     tx = 0
-                    ty = ((Tj / 1000) * ts.Tfs) 
+                    ty = ((Tj / 1000) * ts.Tfs)
                 else:
                     tx = ((Tj / 1000) * ts.Tfs) * ts.Th
                     ty = 0
@@ -363,7 +363,7 @@ class TextOnlyDevice(PDFDevice):
                     w = ts.Tf.char_width(cid)
                     if ts.Tf.is_vertical():
                         tx = 0
-                        ty = ((w - 0) * ts.Tfs + ts.Tc + applicable_Tw) 
+                        ty = ((w - 0) * ts.Tfs + ts.Tc + applicable_Tw)
                     else:
                         tx = ((w - 0) * ts.Tfs + ts.Tc + applicable_Tw) * ts.Th
                         ty = 0
