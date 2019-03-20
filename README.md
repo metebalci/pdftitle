@@ -8,7 +8,7 @@ When you have some PDF articles where you cannot understand their content from t
 
 install with `pip install pdftitle`.
 
-Using `pdftitle -p <pdf-file>'
+Using `pdftitle -p <pdf-file>`
 
 returns the estimated title of the document. Much more info can be seen in verbose mode with `-v`.
 
