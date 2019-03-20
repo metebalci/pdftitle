@@ -1,5 +1,4 @@
-pdftitle
-=======================
+# pdftitle
 
 [![Build Status](https://travis-ci.com/metebalci/pdftitle.svg?branch=master)](https://travis-ci.com/metebalci/pdftitle)
 
@@ -31,12 +30,11 @@ One problem is not all documents uses space character between the words, so it i
 
 There are two options that you can specify on the command line:
 
-* --replace-missing-char: if a glyph (i.e. look of character a) cannot be mapped into the character symbol (i.e. character a), normally an exception is raised. If you want no exception but replace it with something, specific it here.
+--replace-missing-char: if a glyph (i.e. look of character a) cannot be mapped into the character symbol (i.e. character a), normally an exception is raised. If you want no exception but replace it with something, specific it here.
 
 pdftitle uses pdfminer.six project to parse PDF document with its own implementation of the PDF device and PDF interpreter. The names of the variables and calculations in the source code is very similar to how they are given in the PDF spec (http://www.adobe.com/content/dam/Adobe/en/devnet/acrobat/pdfs/pdf_reference_1-7.pdf).
 
-changes
-=======================
+# changes
 
 0.2:
   - changed version string to major.minor format.
