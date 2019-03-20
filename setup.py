@@ -9,7 +9,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 
 setup(
     name='pdftitle',
-    version='20171026',
+    version='0.2',
     description='pdftitle is a small utility to extract the title of a PDF article.',
     long_description=long_description,
     url='https://github.com/metebalci/pdftitle',
@@ -27,7 +27,7 @@ setup(
 
     keywords='pdf text extract',
     py_modules=['pdftitle'],
-    install_requires=['pdfminer.six>=20160614'],
+    install_requires=['pdfminer.six>=20160614', 'chardet'],
 
     entry_points={
         'console_scripts': [

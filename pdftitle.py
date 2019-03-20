@@ -4,8 +4,9 @@ import traceback
 from pdfminer.pdfparser import PDFParser
 from pdfminer.pdfdocument import PDFDocument
 from pdfminer.psparser import literal_name
-from pdfminer.pdfpage import PDFPage, PDFTextExtractionNotAllowed
+from pdfminer.pdfpage import PDFPage
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
+from pdfminer.pdfinterp import PDFInterpreterError
 from pdfminer.pdfdevice import PDFDevice
 from pdfminer import utils
 from pdfminer.pdffont import PDFUnicodeNotDefined
@@ -13,15 +14,17 @@ from pdfminer.pdffont import PDFUnicodeNotDefined
 VERBOSE = False
 MISSING_CHAR = None
 WITHIN_WORD_MOVE_LIMIT = 0
-IDENTITY_MATRIX = (1, 0, 0, 0, 1, 0)
+
 
 def verbose(*s):
     if VERBOSE:
         print(*s)
 
+
 def verbose_operator(*s):
     if VERBOSE:
         print(*s)
+
 
 class TextState(object):
 
@@ -31,43 +34,34 @@ class TextState(object):
         # operator Tc
         # unscaled text space units
         self.Tc = 0
-
         # similar to charspace but applies only to space char=ascii 32
         # operator Tw
         # unscaled text space units
         self.Tw = 0
-
         # applies always horizontally
         # scales individual glyph widths by this
         # that is why default (scale of operator Tz) is 100, 100%, no change
         # operator Tz
         self.Th = 1
-
         # distance between the baselines of adjacent text lines
         # always applies to vertical coordinate
         # operator TL
         # unscaled text space units
         self.Tl = 0
-
         # operator Tf selects both font and font size
         self.Tf = None
         self.Tfs = None
-
         # only about rendering
         # operator Tr
         self.Tmode = 0
-
         # moves baseline up or down, so setting this to 0 resets it
         # operator Ts
         # unscaled text space units
         self.Trise = 0
-
         # text matrix
         self.Tm = None
-
         # text line matrix
         self.Tlm = None
-        return
 
     def __repr__(self):
         return ('<TextState: f=%r, fs=%r, c=%r, w=%r, '
@@ -78,14 +72,13 @@ class TextState(object):
                     self.Tm, self.Tlm))
 
     def on_BT(self):
-        self.Tm = IDENTITY_MATRIX
-        self.Tlm = IDENTITY_MATRIX
-        return
+        self.Tm = utils.MATRIX_IDENTITY
+        self.Tlm = utils.MATRIX_IDENTITY
 
     def on_ET(self):
         self.Tm = None
         self.Tlm = None
-        return
+
 
 class TextOnlyInterpreter(PDFPageInterpreter):
 
@@ -96,85 +89,122 @@ class TextOnlyInterpreter(PDFPageInterpreter):
     # omit these operators
     def do_w(self, linewidth):
         return
+
     def do_J(self, linecap):
         return
+
     def do_j(self, linejoin):
         return
+
     def do_M(self, miterlimit):
         return
+
     def do_d(self, dash, phase):
         return
+
     def do_ri(self, intent):
         return
+
     def do_i(self, flatness):
         return
+
     def do_m(self, x, y):
         return
+
     def do_l(self, x, y):
         return
+
     def do_c(self, x1, y1, x2, y2, x3, y3):
         return
+
     def do_y(self, x1, y1, x3, y3):
         return
+
     def do_h(self):
         return
+
     def do_re(self, x, y, w, h):
         return
+
     def do_S(self):
         return
+
     def do_s(self):
         return
+
     def do_f(self):
         return
+
     def do_f_a(self):
         return
+
     def do_B(self):
         return
+
     def do_B_a(self):
         return
+
     def do_b(self):
         return
+
     def do_b_a(self):
         return
+
     def do_n(self):
         return
+
     def do_W(self):
         return
+
     def do_W_a(self):
         return
+
     def do_CS(self, name):
         return
+
     def do_cs(self, name):
         return
+
     def do_G(self, gray):
         return
+
     def do_g(self, gray):
         return
+
     def do_RG(self, r, g, b):
         return
+
     def do_rg(self, r, g, b):
         return
+
     def do_K(self, c, m, y, k):
         return
+
     def do_k(self, c, m, y, k):
         return
+
     def do_SCN(self):
         return
+
     def do_scn(self):
         return
+
     def so_SC(self):
         return
+
     def do_sc(self):
         return
+
     def do_sh(self, name):
         return
+
     def do_EI(self, obj):
         return
+
     def do_Do(self, xobjid):
         return
 
-    # text object
-
+    # text object begin/end
     def do_BT(self):
         verbose_operator("PDF OPERATOR BT")
         self.mpts.on_BT()
@@ -186,7 +216,6 @@ class TextOnlyInterpreter(PDFPageInterpreter):
         return
 
     # text state operators
-
     def do_Tc(self, charSpace):
         verbose_operator("PDF OPERATOR Tc: charSpace=", charSpace)
         self.mpts.Tc = charSpace
@@ -208,7 +237,8 @@ class TextOnlyInterpreter(PDFPageInterpreter):
         return
 
     def do_Tf(self, fontid, fontsize):
-        verbose_operator("PDF OPERATOR Tf: fontid=", fontid, ", fontsize=", fontsize)
+        verbose_operator("PDF OPERATOR Tf: fontid=", fontid,
+                         ", fontsize=", fontsize)
         try:
             self.mpts.Tf = self.fontmap[literal_name(fontid)]
             verbose_operator("font=", self.mpts.Tf.fontname)
@@ -231,8 +261,7 @@ class TextOnlyInterpreter(PDFPageInterpreter):
 
     def do_Td(self, tx, ty):
         verbose_operator("PDF OPERATOR Td: tx=", tx, ", ty=", ty)
-        m = (1, 0, 0, 1, tx, ty)
-        self.mpts.Tlm = utils.mult_matrix(m, self.mpts.Tlm)
+        self.mpts.Tlm = utils.translate_matrix(self.mpts.Tlm, (tx, ty))
         self.mpts.Tm = self.mpts.Tlm
         return
 
@@ -256,12 +285,17 @@ class TextOnlyInterpreter(PDFPageInterpreter):
 
     # text-showing operators
 
+    # show a string
     def do_Tj(self, string):
         verbose_operator("PDF operator Tj: string=", string)
         self.do_TJ([string])
         return
 
     # ' quote
+    # move to next line and show the string
+    # same as:
+    # T*
+    # string Tj
     def do__q(self, string):
         verbose_operator("PDF operator ': string=", string)
         self.do_T_a()
@@ -269,133 +303,167 @@ class TextOnlyInterpreter(PDFPageInterpreter):
         return
 
     # " doublequote
+    # move to next line and show the string
+    # using aw word spacing, ac char spacing
+    # same as:
+    # aw Tw
+    # ac Tc
+    # string '
     def do__w(self, aw, ac, string):
-        verbose_operator("PDF OPERATOR \": aw=", aw, ", ac=", ac, ", string=", string)
+        verbose_operator("PDF OPERATOR \": aw=", aw,
+                         ", ac=", ac, ", string=", string)
         self.do_Tw(aw)
         self.do_Tc(ac)
         self.do__q(string)
         return
 
+    # show one or more text string, allowing individual glyph positioning
+    # each element in the array is either a string or a number
+    # if string, it is the string to show
+    # if number, it is the number to adjust text position, it translates Tm
     def do_TJ(self, array):
         verbose_operator("PDF OPERATOR TJ: array=", array)
-        self.device.show_string(self.mpts, array)
-        return
+        self.device.process_string(self.mpts, array)
+
 
 class TextOnlyDevice(PDFDevice):
 
     def __init__(self, rsrcmgr):
         PDFDevice.__init__(self, rsrcmgr)
         self.last_state = None
-        self.paragraph = []
-        self.paragraph_map = {}
-        return
+        # contains (font, font_size, string)
+        self.blocks = []
+        # current block
+        # font, font size, glyph y, [chars]
+        self.current_block = None
 
     # at the end of the file, we need to recover last paragraph
     def recover_last_paragraph(self):
-        if len(self.paragraph) > 0:
-            self.paragraph_map[self.last_state[0]] = ' '.join(self.paragraph)
-        return
+        if len(self.current_block[4]) > 0:
+            self.blocks.append(self.current_block)
 
-    def show_string(self, ts, array):
-        verbose(ts)
-        sentence = []
-        word = []
-        m = (ts.Tfs * ts.Th, 0, 0, ts.Tfs, 0, ts.Trise)
-        applicable_Tm = utils.mult_matrix(m, ts.Tm)
-        (sx, _, _, sy, tx, ty) = applicable_Tm
-        current_state = (sx, sy, tx, ty)
-        if self.last_state == None:
-            self.paragraph = []
-            verbose('current paragraph becomes=', self.paragraph)
-        elif current_state[0] == self.last_state[0]:
-            verbose('DECISION: grouping the text object to last')
-        else:
-            verbose('DECISION: finalizing the paragraph')
-            key = self.last_state[0]
-            item = self.paragraph_map.get(key, '')
-            if len(item) > 0:
-                item = item = ' '
-            new_item = ' '.join(self.paragraph)
-            self.paragraph_map[key] = item + new_item
-            self.paragraph = []
-            verbose('current paragraph becomes=', self.paragraph)
-        self.last_state = current_state
+    # pdf spec, page 410
+    def new_tx(self, w, Tj, Tfs, Tc, Tw, Th):
+        return ((w - Tj / 1000) * Tfs + Tc + Tw) * Th
+
+    # pdf spec, page 410
+    def new_ty(self, w, Tj, Tfs, Tc, Tw):
+        return (w - Tj / 1000) * Tfs + Tc + Tw
+
+    def process_string(self, ts, array):
+        verbose('SHOW STRING ts: ', ts)
+        verbose('SHOW STRING array: ', array)
         for obj in array:
-            verbose("processing obj=", obj)
+            verbose("processing obj: ", obj)
+            # this comes from TJ, number translates Tm
             if utils.isnumber(obj):
                 Tj = obj
-                if Tj < WITHIN_WORD_MOVE_LIMIT:
-                    verbose("DECISION: new word")
-                    sentence.append(''.join(word))
-                    verbose('current sentence becomes=', sentence)
-                    word = []
-                    verbose('current word becomes=', word)
-                else:
-                    verbose("DECISION: move inside the current word")
+                verbose("processing translation: ", Tj)
+                # translating Tm, change tx, ty according to direction
                 if ts.Tf.is_vertical():
                     tx = 0
-                    ty = ((Tj / 1000) * ts.Tfs)
+                    ty = self.new_ty(0, Tj, ts.Tfs, 0, ts.Tw)
                 else:
-                    tx = ((Tj / 1000) * ts.Tfs) * ts.Th
+                    tx = self.new_tx(0, Tj, ts.Tfs, 0, ts.Tw, ts.Th)
                     ty = 0
-                ts.Tm = utils.mult_matrix((1, 0, 0, 1, tx, ty), ts.Tm)
+                # update Tm accordingly
+                ts.Tm = utils.translate_matrix(ts.Tm, (tx, ty))
+                # there is an heuristic needed here, not sure what
+                #if -Tj > ts.Tf.char_width('o'):
+                #    self.draw_cid(ts, 0, force_space=True)
             else:
+                verbose("processing string")
                 for cid in ts.Tf.decode(obj):
-                    verbose("processing cid=", cid)
-                    m = (ts.Tfs * ts.Th, 0, 0, ts.Tfs, 0, ts.Trise)
-                    applicable_Tm = utils.mult_matrix(m, ts.Tm)
-                    if cid == 32:
-                        applicable_Tw = ts.Tw
-                        sentence.append(''.join(word))
-                        verbose('current sentence becomes=', sentence)
-                        word = []
-                    else:
-                        try:
-                            text = ts.Tf.to_unichr(cid)
-                        except PDFUnicodeNotDefined:
-                            if MISSING_CHAR:
-                                text = MISSING_CHAR
-                            else:
-                                raise
-                        word.append(text)
-                        verbose('current word becomes=', word)
-                        applicable_Tw = 0
-                    w = ts.Tf.char_width(cid)
-                    if ts.Tf.is_vertical():
-                        tx = 0
-                        ty = ((w - 0) * ts.Tfs + ts.Tc + applicable_Tw)
-                    else:
-                        tx = ((w - 0) * ts.Tfs + ts.Tc + applicable_Tw) * ts.Th
-                        ty = 0
-                    ts.Tm = utils.mult_matrix((1, 0, 0, 1, tx, ty), ts.Tm)
-        if len(word) > 0:
-            sentence.append(''.join(word))
-            verbose('current sentence becomes=', sentence)
-            word = []
-            verbose('current word becomes=', word)
-        self.paragraph.append(' '.join(sentence))
-        verbose('current paragraph becomes=', self.paragraph)
-        return
+                    self.draw_cid(ts, cid)
 
-def get_title(pdf_file):
+    def draw_cid(self, ts, cid, force_space=False):
+        verbose("drawing cid: ", cid)
+        Trm = utils.mult_matrix((ts.Tfs * ts.Th, 0, 0, ts.Tfs, 0, ts.Trise),
+                                ts.Tm)
+        if Trm[1] != 0:
+            return
+        if Trm[2] != 0:
+            return
+        verbose('Trm', Trm)
+        if cid == 32 or force_space:
+            Tw = ts.Tw
+        else:
+            Tw = 0
+        try:
+            if force_space:
+                unichar = ' '
+            else:
+                unichar = ts.Tf.to_unichr(cid)
+        except PDFUnicodeNotDefined:
+            if MISSING_CHAR:
+                unichar = MISSING_CHAR
+            else:
+                raise
+        (gx, gy) = utils.apply_matrix_pt(Trm, (0, 0))
+        verbose("drawing unichar: '", unichar, "' @", gx, ",", gy)
+        tfs = Trm[0]
+        if self.current_block is None:
+            self.current_block = (ts.Tf, tfs, gx, gy, [unichar])
+        elif ((self.current_block[0] == ts.Tf) and
+              (self.current_block[1] == tfs)):
+            self.current_block[4].append(unichar)
+        else:
+            self.blocks.append(self.current_block)
+            self.current_block = (ts.Tf, tfs, gx, gy, [unichar])
+        verbose('current block: ', self.current_block)
+        verbose('blocks: ', self.blocks)
+        if force_space:
+            pass
+        else:
+            w = ts.Tf.char_width(cid)
+            if ts.Tf.is_vertical():
+                tx = 0
+                ty = self.new_ty(w, 0, ts.Tfs, ts.Tc, Tw)
+            else:
+                tx = self.new_tx(w, 0, ts.Tfs, ts.Tc, Tw, ts.Th)
+                ty = 0
+            ts.Tm = utils.translate_matrix(ts.Tm, (tx, ty))
+
+
+def get_title_from_io(pdf_io):
+    parser = PDFParser(pdf_io)
+    # if pdf is protected with a pwd, 2nd param here is password
+    doc = PDFDocument(parser)
+    # pdf may not allow extraction
+    if doc.is_extractable:
+        rm = PDFResourceManager()
+        dev = TextOnlyDevice(rm)
+        interpreter = TextOnlyInterpreter(rm, dev)
+        for page in PDFPage.create_pages(doc):
+            interpreter.process_page(page)
+            break
+        dev.recover_last_paragraph()
+        verbose('all blocks')
+        for b in dev.blocks:
+            verbose(b)
+        # find max font size
+        max_tfs = max(dev.blocks, key=lambda x: x[1])[1]
+        verbose('max_tfs: ', max_tfs)
+        # find max blocks with max font size
+        max_blocks = list(filter(lambda x: x[1] == max_tfs, dev.blocks))
+        # find the one with the highest y coordinate
+        # this is the most close to top
+        max_y = max(max_blocks, key=lambda x: x[3])[3]
+        verbose('max_y: ', max_y)
+        found_blocks = list(filter(lambda x: x[3] == max_y, max_blocks))
+        verbose('found blocks')
+        for b in found_blocks:
+            verbose(b)
+        block = found_blocks[0]
+        return ''.join(block[4]).strip()
+    else:
+        return None
+
+
+def get_title_from_file(pdf_file):
     with open(pdf_file, 'rb') as raw_file:
-        parser = PDFParser(raw_file)
-        # if pdf is protected with a pwd, 2nd param here is password
-        doc = PDFDocument(parser)
-        # pdf may not allow extraction
-        if doc.is_extractable:
-            rm = PDFResourceManager()
-            dev = TextOnlyDevice(rm)
-            interpreter = TextOnlyInterpreter(rm, dev)
-            for page in PDFPage.create_pages(doc):
-                interpreter.process_page(page)
-                break
-            dev.recover_last_paragraph()
-            sizes = dev.paragraph_map.keys()
-            verbose('there are ', len(sizes), ' text blocks with different font sizes')
-            max_size = max(sizes)
-            verbose('max font size', max_size);
-            return ''.join(dev.paragraph_map[max_size])
+        return get_title_from_io(raw_file)
+
 
 def run():
     try:
@@ -403,21 +471,28 @@ def run():
                 prog='pdftitle',
                 description='Extracts the title of a PDF article',
                 epilog='')
-        parser.add_argument('-p', '--pdf', help='pdf file', required=True)
-        parser.add_argument('--replace-missing-char', help='replace missing char with the one specified')
-        parser.add_argument('--within-word-move-limit', help='sets the limit for deciding word boundry for within word movement in array given for TJ operator', default=-50)
-        parser.add_argument('-v', '--verbose', action='store_true', help='enable verbose logging')
+        parser.add_argument('-p', '--pdf',
+                            help='pdf file', required=True)
+        parser.add_argument('--replace-missing-char',
+                            help='replace missing char with the one specified')
+        parser.add_argument('-v', '--verbose',
+                            action='store_true',
+                            help='enable verbose logging')
         args = parser.parse_args()
-        global VERBOSE, MISSING_CHAR, WITHIN_WORD_MOVE_LIMIT
+        global VERBOSE, MISSING_CHAR
         VERBOSE = args.verbose
         MISSING_CHAR = args.replace_missing_char
-        WITHIN_WORD_MOVE_LIMIT = args.within_word_move_limit
-        print(get_title(args.pdf))
-        return 0
+        title = get_title_from_file(args.pdf)
+        if title is None:
+            return 1
+        else:
+            print(title)
+            return 0
     except Exception as e:
         if VERBOSE:
             traceback.print_exc()
         return 1
+
 
 if __name__ == '__main__':
     sys.exit(run())
