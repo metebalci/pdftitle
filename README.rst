@@ -1,6 +1,8 @@
 pdftitle
 =======================
 
+[![Build Status](https://travis-ci.com/metebalci/pdftitle.svg?branch=master)](https://travis-ci.com/metebalci/pdftitle)
+
 pdftitle is a small utility to extract the title of a PDF article.
 
 When you have some PDF articles where you cannot understand their content from their filenames, you can use this utility to extract the title and rename the files if you want. This utility does not look at the metadata of a PDF file. The title in the metadata can be empty. It works for ~80% of the PDFs I have and it is especially suited for PDF files of scientific articles.
