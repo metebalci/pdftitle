@@ -10,6 +10,9 @@ from pdfminer.pdfinterp import PDFInterpreterError
 from pdfminer.pdfdevice import PDFDevice
 from pdfminer import utils
 from pdfminer.pdffont import PDFUnicodeNotDefined
+from pdfminer.converter import TextConverter
+from pdfminer.layout import LAParams
+from io import StringIO
 
 VERBOSE = False
 MISSING_CHAR = None
@@ -369,7 +372,7 @@ class TextOnlyDevice(PDFDevice):
                 # update Tm accordingly
                 ts.Tm = utils.translate_matrix(ts.Tm, (tx, ty))
                 # there is an heuristic needed here, not sure what
-                #if -Tj > ts.Tf.char_width('o'):
+                # if -Tj > ts.Tf.char_width('o'):
                 #    self.draw_cid(ts, 0, force_space=True)
             else:
                 verbose("processing string")
@@ -429,18 +432,31 @@ def get_title_from_io(pdf_io):
     parser = PDFParser(pdf_io)
     # if pdf is protected with a pwd, 2nd param here is password
     doc = PDFDocument(parser)
+
     # pdf may not allow extraction
     if doc.is_extractable:
         rm = PDFResourceManager()
         dev = TextOnlyDevice(rm)
         interpreter = TextOnlyInterpreter(rm, dev)
+
+        first_page = StringIO()
+        converter = TextConverter(rm, first_page, laparams=LAParams())
+        page_interpreter = PDFPageInterpreter(rm, converter)
+
         for page in PDFPage.create_pages(doc):
             interpreter.process_page(page)
+            page_interpreter.process_page(page)
             break
+
+        converter.close()
+        first_page_text = first_page.getvalue()
+        first_page.close
         dev.recover_last_paragraph()
         verbose('all blocks')
+
         for b in dev.blocks:
             verbose(b)
+
         # find max font size
         max_tfs = max(dev.blocks, key=lambda x: x[1])[1]
         verbose('max_tfs: ', max_tfs)
@@ -452,10 +468,18 @@ def get_title_from_io(pdf_io):
         verbose('max_y: ', max_y)
         found_blocks = list(filter(lambda x: x[3] == max_y, max_blocks))
         verbose('found blocks')
+
         for b in found_blocks:
             verbose(b)
         block = found_blocks[0]
-        return ''.join(block[4]).strip()
+        title = ''.join(block[4]).strip()
+
+        # Retrieve missing spaces if needed
+        if not " " in title:
+            title = retrieve_spaces(first_page_text, title)
+
+        return title
+
     else:
         return None
 
@@ -465,12 +489,56 @@ def get_title_from_file(pdf_file):
         return get_title_from_io(raw_file)
 
 
+def retrieve_spaces(first_page, title_without_space, p=0, t=0, result=""):
+    '''Correct the space problem if the document does not use space character between the words'''
+    # Stop condition : all the first page has been explored or we have explored all the letters of the title
+    if (p >= len(first_page) or t >= len(title_without_space)):
+        return result
+
+    # Add letter to our result if it corresponds to the title
+    elif first_page[p].lower() == title_without_space[t].lower():
+        result += first_page[p]
+        t += 1
+
+    elif t != 0:
+        # Add spaces if there is space or a wordwrap
+        if first_page[p] == " " or first_page[p] == "\n":
+            result += " "
+        # If letter p-1 in page corresponds to letter t-1 in title, but lette p does not corresponds to letter p,
+        # we are not exploring the title in the page
+        else:
+            t = 0
+            result = ""
+
+    return retrieve_spaces(
+        first_page, title_without_space, p+1, t, result)
+
+
+def get_text_from_first_page(pdf_io):
+    '''Return a string containing the text from the first page of the file.'''
+    pagenums = set()
+
+    output = StringIO()
+    manager = PDFResourceManager()
+    converter = TextConverter(manager, output, laparams=LAParams())
+    interpreter = PDFPageInterpreter(manager, converter)
+
+    for page in PDFPage.get_pages(pdf_io, pagenums):
+        interpreter.process_page(page)
+        break
+    # pdf_io.close()
+    converter.close()
+    text = output.getvalue()
+    output.close
+    return text
+
+
 def run():
     try:
         parser = argparse.ArgumentParser(
-                prog='pdftitle',
-                description='Extracts the title of a PDF article',
-                epilog='')
+            prog='pdftitle',
+            description='Extracts the title of a PDF article',
+            epilog='')
         parser.add_argument('-p', '--pdf',
                             help='pdf file', required=True)
         parser.add_argument('--replace-missing-char',
