@@ -514,25 +514,6 @@ def retrieve_spaces(first_page, title_without_space, p=0, t=0, result=""):
         first_page, title_without_space, p+1, t, result)
 
 
-def get_text_from_first_page(pdf_io):
-    '''Return a string containing the text from the first page of the file.'''
-    pagenums = set()
-
-    output = StringIO()
-    manager = PDFResourceManager()
-    converter = TextConverter(manager, output, laparams=LAParams())
-    interpreter = PDFPageInterpreter(manager, converter)
-
-    for page in PDFPage.get_pages(pdf_io, pagenums):
-        interpreter.process_page(page)
-        break
-    # pdf_io.close()
-    converter.close()
-    text = output.getvalue()
-    output.close
-    return text
-
-
 def run():
     try:
         parser = argparse.ArgumentParser(
