@@ -478,6 +478,10 @@ def get_title_from_io(pdf_io):
         if not " " in title:
             title = retrieve_spaces(first_page_text, title)
 
+        # Remove duplcate spaces if any are present
+        if "  " in title:
+            title = " ".join(title.split())
+
         return title
 
     else:
