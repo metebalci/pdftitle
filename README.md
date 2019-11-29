@@ -36,6 +36,12 @@ pdftitle uses pdfminer.six project to parse PDF document with its own implementa
 
 # changes
 
+0.4:
+  - Merged #e4bb0d6 to detect and remove duplicate spaces in the returned title. Contributed by Jakob Guldberg Aaes (https://github.com/jakob1379).
+
+0.3:
+  - Merged #f65ff4c and #f5c60c0 for identifying spaces when no space char is used. Contributed by Fabien Couthouis (https://github.com/Fabien-Couthouis).
+
 0.2:
   - changed version string to major.minor format.
   - pdftitle can be used as a library for a project, use get_title_from_io method
