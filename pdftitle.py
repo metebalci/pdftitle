@@ -71,8 +71,8 @@ class TextState(object):
                 'h=%r, l=%r, mode=%r, rise=%r, '
                 'm=%r, lm=%r>' %
                 (self.Tf, self.Tfs, self.Tc, self.Tw,
-                    self.Th, self.Tl, self.Tmode, self.Trise,
-                    self.Tm, self.Tlm))
+                 self.Th, self.Tl, self.Tmode, self.Trise,
+                 self.Tm, self.Tlm))
 
     def on_BT(self):
         self.Tm = utils.MATRIX_IDENTITY
@@ -211,33 +211,28 @@ class TextOnlyInterpreter(PDFPageInterpreter):
     def do_BT(self):
         verbose_operator("PDF OPERATOR BT")
         self.mpts.on_BT()
-        return
 
     def do_ET(self):
         verbose_operator("PDF OPERATOR ET")
         self.mpts.on_ET()
-        return
 
     # text state operators
     def do_Tc(self, charSpace):
         verbose_operator("PDF OPERATOR Tc: charSpace=", charSpace)
         self.mpts.Tc = charSpace
-        return
+
 
     def do_Tw(self, wordSpace):
         verbose_operator("PDF OPERATOR Tw: wordSpace=", wordSpace)
         self.mpts.Tw = wordSpace
-        return
 
     def do_Tz(self, scale):
         verbose_operator("PDF OPERATOR Tz: scale=", scale)
         self.mpts.Th = scale * 0.01
-        return
 
     def do_TL(self, leading):
         verbose_operator("PDF OPERATOR TL: leading=", leading)
         self.mpts.Tl = leading
-        return
 
     def do_Tf(self, fontid, fontsize):
         verbose_operator("PDF OPERATOR Tf: fontid=", fontid,
@@ -253,12 +248,10 @@ class TextOnlyInterpreter(PDFPageInterpreter):
     def do_Tr(self, render):
         verbose_operator("PDF OPERATOR Tr: render=", render)
         self.mpts.Tmode = render
-        return
 
     def do_Ts(self, rise):
         verbose_operator("PDF OPERATOR Ts: rise=", rise)
         self.mpts.Trise = rise
-        return
 
     # text-move operators
 
@@ -266,25 +259,21 @@ class TextOnlyInterpreter(PDFPageInterpreter):
         verbose_operator("PDF OPERATOR Td: tx=", tx, ", ty=", ty)
         self.mpts.Tlm = utils.translate_matrix(self.mpts.Tlm, (tx, ty))
         self.mpts.Tm = self.mpts.Tlm
-        return
 
     def do_TD(self, tx, ty):
         verbose_operator("PDF OPERATOR TD: tx=", tx, ", ty=", ty)
         self.do_TL(-ty)
         self.do_Td(tx, ty)
-        return
 
     def do_Tm(self, a, b, c, d, e, f):
         verbose_operator("PDF OPERATOR Tm: matrix=", (a, b, c, d, e, f))
         self.mpts.Tlm = (a, b, c, d, e, f)
         self.mpts.Tm = self.mpts.Tlm
-        return
 
     # T*
     def do_T_a(self):
         verbose_operator("PDF OPERATOR T*")
         self.do_Td(0, self.mpts.Tl)
-        return
 
     # text-showing operators
 
@@ -292,7 +281,6 @@ class TextOnlyInterpreter(PDFPageInterpreter):
     def do_Tj(self, string):
         verbose_operator("PDF operator Tj: string=", string)
         self.do_TJ([string])
-        return
 
     # ' quote
     # move to next line and show the string
@@ -303,7 +291,6 @@ class TextOnlyInterpreter(PDFPageInterpreter):
         verbose_operator("PDF operator ': string=", string)
         self.do_T_a()
         self.do_Tj(string)
-        return
 
     # " doublequote
     # move to next line and show the string
@@ -318,7 +305,6 @@ class TextOnlyInterpreter(PDFPageInterpreter):
         self.do_Tw(aw)
         self.do_Tc(ac)
         self.do__q(string)
-        return
 
     # show one or more text string, allowing individual glyph positioning
     # each element in the array is either a string or a number
@@ -342,7 +328,7 @@ class TextOnlyDevice(PDFDevice):
 
     # at the end of the file, we need to recover last paragraph
     def recover_last_paragraph(self):
-        if len(self.current_block[4]) > 0:
+        if not self.current_block[4]:
             self.blocks.append(self.current_block)
 
     # pdf spec, page 410
@@ -450,7 +436,8 @@ def get_title_from_io(pdf_io):
 
         converter.close()
         first_page_text = first_page.getvalue()
-        first_page.close
+        first_page.close()
+
         dev.recover_last_paragraph()
         verbose('all blocks')
 
@@ -475,7 +462,7 @@ def get_title_from_io(pdf_io):
         title = ''.join(block[4]).strip()
 
         # Retrieve missing spaces if needed
-        if not " " in title:
+        if " " not in title:
             title = retrieve_spaces(first_page_text, title)
 
         # Remove duplcate spaces if any are present
@@ -483,9 +470,7 @@ def get_title_from_io(pdf_io):
             title = " ".join(title.split())
 
         return title
-
-    else:
-        return None
+    return None
 
 
 def get_title_from_file(pdf_file):
@@ -494,13 +479,16 @@ def get_title_from_file(pdf_file):
 
 
 def retrieve_spaces(first_page, title_without_space, p=0, t=0, result=""):
-    '''Correct the space problem if the document does not use space character between the words'''
-    # Stop condition : all the first page has been explored or we have explored all the letters of the title
+    '''Correct the space problem if the document does not use space character
+    between the words'''
+
+    # Stop condition : all the first page has been explored or we have explored
+    # all the letters of the title
     if (p >= len(first_page) or t >= len(title_without_space)):
         return result
 
     # Add letter to our result if it corresponds to the title
-    elif first_page[p].lower() == title_without_space[t].lower():
+    if first_page[p].lower() == title_without_space[t].lower():
         result += first_page[p]
         t += 1
 
@@ -508,8 +496,9 @@ def retrieve_spaces(first_page, title_without_space, p=0, t=0, result=""):
         # Add spaces if there is space or a wordwrap
         if first_page[p] == " " or first_page[p] == "\n":
             result += " "
-        # If letter p-1 in page corresponds to letter t-1 in title, but lette p does not corresponds to letter p,
-        # we are not exploring the title in the page
+        # If letter p-1 in page corresponds to letter t-1 in title, but lette p
+        # does not corresponds to letter p, we are not exploring the title in
+        # the page
         else:
             t = 0
             result = ""
@@ -538,9 +527,10 @@ def run():
         title = get_title_from_file(args.pdf)
         if title is None:
             return 1
-        else:
-            print(title)
-            return 0
+
+        print(title)
+        return 0
+
     except Exception as e:
         if VERBOSE:
             traceback.print_exc()
