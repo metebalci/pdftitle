@@ -36,6 +36,10 @@ pdftitle uses pdfminer.six project to parse PDF document with its own implementa
 
 # changes
 
+0.5:
+	- fixed install problem with 0.4
+  - pdfminer version updated.
+
 0.4:
   - Merged #e4bb0d6 to detect and remove duplicate spaces in the returned title. Contributed by Jakob Guldberg Aaes (https://github.com/jakob1379).
 
