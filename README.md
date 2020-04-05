@@ -6,11 +6,22 @@ pdftitle is a small utility to extract the title of a PDF article.
 
 When you have some PDF articles where you cannot understand their content from their filenames, you can use this utility to extract the title and rename the files if you want. This utility does not look at the metadata of a PDF file. The title in the metadata can be empty. It works for ~80% of the PDFs I have and it is especially suited for PDF files of scientific articles.
 
-install with `pip install pdftitle`.
+## Installation
 
-Using `pdftitle -p <pdf-file>`
+```
+pip install pdftitle
+```
 
-returns the estimated title of the document. Much more info can be seen in verbose mode with `-v`.
+## Usage
+
+```
+pdftitle -p <pdf-file> # Print the title of a PDF file
+pdftitle -p <pdf-file> -c # Change the name of the file to the title
+find . -type f -name "*.pdf" -exec pdftitle -p {} -c \; # Change names recursively
+```
+Much more info can be seen in verbose mode with `-v`.
+
+## Heuristics
 
 Currently, it uses the following heuristic:
 
