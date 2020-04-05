@@ -3,7 +3,9 @@ language: python
 python: 3.6
 install:
   - pip install -r requirements.txt
+  - pip install pylint
 script:
   - pip install -e .
+  - pylint pdftitle.py
   - bash test.sh
   - bash testc.sh

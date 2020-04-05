@@ -1,8 +1,13 @@
+# pylint: disable=missing-module-docstring
+# pylint: disable=missing-function-docstring
+# pylint: disable=missing-class-docstring
+# pylint: disable=invalid-name
 import sys
 import argparse
 import traceback
 import os
 import string
+from io import StringIO
 from pdfminer.pdfparser import PDFParser
 from pdfminer.pdfdocument import PDFDocument
 from pdfminer.psparser import literal_name
@@ -14,7 +19,6 @@ from pdfminer import utils
 from pdfminer.pdffont import PDFUnicodeNotDefined
 from pdfminer.converter import TextConverter
 from pdfminer.layout import LAParams
-from io import StringIO
 
 VERBOSE = False
 MISSING_CHAR = None
@@ -31,8 +35,8 @@ def verbose_operator(*s):
         print(*s)
 
 
-class TextState(object):
-
+class TextState():
+    # pylint: disable=too-many-instance-attributes
     def __init__(self):
         # charspace added to each glyph after rendering
         # this is not the width of glyph, this is extra, so default is 0
@@ -73,8 +77,8 @@ class TextState(object):
                 'h=%r, l=%r, mode=%r, rise=%r, '
                 'm=%r, lm=%r>' %
                 (self.Tf, self.Tfs, self.Tc, self.Tw,
-                    self.Th, self.Tl, self.Tmode, self.Trise,
-                    self.Tm, self.Tlm))
+                 self.Th, self.Tl, self.Tmode, self.Trise,
+                 self.Tm, self.Tlm))
 
     def on_BT(self):
         self.Tm = utils.MATRIX_IDENTITY
@@ -86,6 +90,7 @@ class TextState(object):
 
 
 class TextOnlyInterpreter(PDFPageInterpreter):
+    # pylint: disable=too-many-public-methods
 
     def __init__(self, rsrcmgr, device):
         PDFPageInterpreter.__init__(self, rsrcmgr, device)
@@ -93,153 +98,147 @@ class TextOnlyInterpreter(PDFPageInterpreter):
 
     # omit these operators
     def do_w(self, linewidth):
-        return
+        pass
 
     def do_J(self, linecap):
-        return
+        pass
 
     def do_j(self, linejoin):
-        return
+        pass
 
     def do_M(self, miterlimit):
-        return
+        pass
 
     def do_d(self, dash, phase):
-        return
+        pass
 
     def do_ri(self, intent):
-        return
+        pass
 
     def do_i(self, flatness):
-        return
+        pass
 
     def do_m(self, x, y):
-        return
+        pass
 
     def do_l(self, x, y):
-        return
+        pass
 
-    def do_c(self, x1, y1, x2, y2, x3, y3):
-        return
+    def do_c(self, x1, y1, x2, y2, x3, y3):  # pylint: disable=too-many-arguments
+        pass
 
     def do_y(self, x1, y1, x3, y3):
-        return
+        pass
 
     def do_h(self):
-        return
+        pass
 
     def do_re(self, x, y, w, h):
-        return
+        pass
 
     def do_S(self):
-        return
+        pass
 
     def do_s(self):
-        return
+        pass
 
     def do_f(self):
-        return
+        pass
 
     def do_f_a(self):
-        return
+        pass
 
     def do_B(self):
-        return
+        pass
 
     def do_B_a(self):
-        return
+        pass
 
     def do_b(self):
-        return
+        pass
 
     def do_b_a(self):
-        return
+        pass
 
     def do_n(self):
-        return
+        pass
 
     def do_W(self):
-        return
+        pass
 
     def do_W_a(self):
-        return
+        pass
 
     def do_CS(self, name):
-        return
+        pass
 
     def do_cs(self, name):
-        return
+        pass
 
     def do_G(self, gray):
-        return
+        pass
 
     def do_g(self, gray):
-        return
+        pass
 
     def do_RG(self, r, g, b):
-        return
+        pass
 
     def do_rg(self, r, g, b):
-        return
+        pass
 
     def do_K(self, c, m, y, k):
-        return
+        pass
 
     def do_k(self, c, m, y, k):
-        return
+        pass
 
     def do_SCN(self):
-        return
+        pass
 
     def do_scn(self):
-        return
+        pass
 
     def so_SC(self):
-        return
+        pass
 
     def do_sc(self):
-        return
+        pass
 
     def do_sh(self, name):
-        return
+        pass
 
     def do_EI(self, obj):
-        return
+        pass
 
     def do_Do(self, xobjid):
-        return
+        pass
 
     # text object begin/end
     def do_BT(self):
         verbose_operator("PDF OPERATOR BT")
         self.mpts.on_BT()
-        return
 
     def do_ET(self):
         verbose_operator("PDF OPERATOR ET")
         self.mpts.on_ET()
-        return
 
     # text state operators
-    def do_Tc(self, charSpace):
-        verbose_operator("PDF OPERATOR Tc: charSpace=", charSpace)
-        self.mpts.Tc = charSpace
-        return
+    def do_Tc(self, space):
+        verbose_operator("PDF OPERATOR Tc: space=", space)
+        self.mpts.Tc = space
 
-    def do_Tw(self, wordSpace):
-        verbose_operator("PDF OPERATOR Tw: wordSpace=", wordSpace)
-        self.mpts.Tw = wordSpace
-        return
+    def do_Tw(self, space):
+        verbose_operator("PDF OPERATOR Tw: space=", space)
+        self.mpts.Tw = space
 
     def do_Tz(self, scale):
         verbose_operator("PDF OPERATOR Tz: scale=", scale)
         self.mpts.Th = scale * 0.01
-        return
 
     def do_TL(self, leading):
         verbose_operator("PDF OPERATOR TL: leading=", leading)
         self.mpts.Tl = leading
-        return
 
     def do_Tf(self, fontid, fontsize):
         verbose_operator("PDF OPERATOR Tf: fontid=", fontid,
@@ -248,19 +247,16 @@ class TextOnlyInterpreter(PDFPageInterpreter):
             self.mpts.Tf = self.fontmap[literal_name(fontid)]
             verbose_operator("font=", self.mpts.Tf.fontname)
             self.mpts.Tfs = fontsize
-            return
         except KeyError:
             raise PDFInterpreterError('Undefined Font id: %r' % fontid)
 
     def do_Tr(self, render):
         verbose_operator("PDF OPERATOR Tr: render=", render)
         self.mpts.Tmode = render
-        return
 
     def do_Ts(self, rise):
         verbose_operator("PDF OPERATOR Ts: rise=", rise)
         self.mpts.Trise = rise
-        return
 
     # text-move operators
 
@@ -268,44 +264,38 @@ class TextOnlyInterpreter(PDFPageInterpreter):
         verbose_operator("PDF OPERATOR Td: tx=", tx, ", ty=", ty)
         self.mpts.Tlm = utils.translate_matrix(self.mpts.Tlm, (tx, ty))
         self.mpts.Tm = self.mpts.Tlm
-        return
 
     def do_TD(self, tx, ty):
         verbose_operator("PDF OPERATOR TD: tx=", tx, ", ty=", ty)
         self.do_TL(-ty)
         self.do_Td(tx, ty)
-        return
 
-    def do_Tm(self, a, b, c, d, e, f):
+    def do_Tm(self, a, b, c, d, e, f):  # pylint: disable=too-many-arguments
         verbose_operator("PDF OPERATOR Tm: matrix=", (a, b, c, d, e, f))
         self.mpts.Tlm = (a, b, c, d, e, f)
         self.mpts.Tm = self.mpts.Tlm
-        return
 
     # T*
     def do_T_a(self):
         verbose_operator("PDF OPERATOR T*")
         self.do_Td(0, self.mpts.Tl)
-        return
 
     # text-showing operators
 
     # show a string
-    def do_Tj(self, string):
-        verbose_operator("PDF operator Tj: string=", string)
-        self.do_TJ([string])
-        return
+    def do_Tj(self, s):
+        verbose_operator("PDF operator Tj: s=", s)
+        self.do_TJ([s])
 
     # ' quote
     # move to next line and show the string
     # same as:
     # T*
     # string Tj
-    def do__q(self, string):
-        verbose_operator("PDF operator ': string=", string)
+    def do__q(self, s):
+        verbose_operator("PDF operator q: s=", s)
         self.do_T_a()
-        self.do_Tj(string)
-        return
+        self.do_Tj(s)
 
     # " doublequote
     # move to next line and show the string
@@ -314,21 +304,20 @@ class TextOnlyInterpreter(PDFPageInterpreter):
     # aw Tw
     # ac Tc
     # string '
-    def do__w(self, aw, ac, string):
+    def do__w(self, aw, ac, s):
         verbose_operator("PDF OPERATOR \": aw=", aw,
-                         ", ac=", ac, ", string=", string)
+                         ", ac=", ac, ", s=", s)
         self.do_Tw(aw)
         self.do_Tc(ac)
-        self.do__q(string)
-        return
+        self.do__q(s)
 
     # show one or more text string, allowing individual glyph positioning
     # each element in the array is either a string or a number
     # if string, it is the string to show
     # if number, it is the number to adjust text position, it translates Tm
-    def do_TJ(self, array):
-        verbose_operator("PDF OPERATOR TJ: array=", array)
-        self.device.process_string(self.mpts, array)
+    def do_TJ(self, seq):
+        verbose_operator("PDF OPERATOR TJ: seq=", seq)
+        self.device.process_string(self.mpts, seq)
 
 
 class TextOnlyDevice(PDFDevice):
@@ -348,11 +337,11 @@ class TextOnlyDevice(PDFDevice):
             self.blocks.append(self.current_block)
 
     # pdf spec, page 410
-    def new_tx(self, w, Tj, Tfs, Tc, Tw, Th):
+    def new_tx(self, w, Tj, Tfs, Tc, Tw, Th):  # pylint: disable=no-self-use,too-many-arguments
         return ((w - Tj / 1000) * Tfs + Tc + Tw) * Th
 
     # pdf spec, page 410
-    def new_ty(self, w, Tj, Tfs, Tc, Tw):
+    def new_ty(self, w, Tj, Tfs, Tc, Tw):  # pylint: disable=no-self-use,too-many-arguments
         return (w - Tj / 1000) * Tfs + Tc + Tw
 
     def process_string(self, ts, array):
@@ -382,6 +371,7 @@ class TextOnlyDevice(PDFDevice):
                     self.draw_cid(ts, cid)
 
     def draw_cid(self, ts, cid, force_space=False):
+        # pylint: disable=too-many-branches
         verbose("drawing cid: ", cid)
         Trm = utils.mult_matrix((ts.Tfs * ts.Th, 0, 0, ts.Tfs, 0, ts.Trise),
                                 ts.Tm)
@@ -431,11 +421,13 @@ class TextOnlyDevice(PDFDevice):
 
 
 def get_title_from_io(pdf_io):
+    # pylint: disable=too-many-locals
     parser = PDFParser(pdf_io)
     # if pdf is protected with a pwd, 2nd param here is password
     doc = PDFDocument(parser)
 
     # pdf may not allow extraction
+    # pylint: disable=no-else-return
     if doc.is_extractable:
         rm = PDFResourceManager()
         dev = TextOnlyDevice(rm)
@@ -452,7 +444,7 @@ def get_title_from_io(pdf_io):
 
         converter.close()
         first_page_text = first_page.getvalue()
-        first_page.close
+        first_page.close()
         dev.recover_last_paragraph()
         verbose('all blocks')
 
@@ -477,7 +469,7 @@ def get_title_from_io(pdf_io):
         title = ''.join(block[4]).strip()
 
         # Retrieve missing spaces if needed
-        if not " " in title:
+        if " " not in title:
             title = retrieve_spaces(first_page_text, title)
 
         # Remove duplcate spaces if any are present
@@ -485,7 +477,6 @@ def get_title_from_io(pdf_io):
             title = " ".join(title.split())
 
         return title
-
     else:
         return None
 
@@ -496,8 +487,12 @@ def get_title_from_file(pdf_file):
 
 
 def retrieve_spaces(first_page, title_without_space, p=0, t=0, result=""):
-    '''Correct the space problem if the document does not use space character between the words'''
-    # Stop condition : all the first page has been explored or we have explored all the letters of the title
+    # Correct the space problem
+    #  if the document does not use space character between the words
+    # Stop condition : all the first page has been explored or
+    #  we have explored all the letters of the title
+
+    # pylint: disable=no-else-return
     if (p >= len(first_page) or t >= len(title_without_space)):
         return result
 
@@ -510,7 +505,8 @@ def retrieve_spaces(first_page, title_without_space, p=0, t=0, result=""):
         # Add spaces if there is space or a wordwrap
         if first_page[p] == " " or first_page[p] == "\n":
             result += " "
-        # If letter p-1 in page corresponds to letter t-1 in title, but lette p does not corresponds to letter p,
+        # If letter p-1 in page corresponds to letter t-1 in title,
+        #  but lette p does not corresponds to letter p,
         # we are not exploring the title in the page
         else:
             t = 0
@@ -535,23 +531,23 @@ def run():
         parser.add_argument('-v', '--verbose',
                             action='store_true',
                             help='enable verbose logging')
-        
+
         # Parse aguments and set global parameters
         args = parser.parse_args()
-        global VERBOSE, MISSING_CHAR
+        global VERBOSE, MISSING_CHAR  # pylint: disable=W0603
         VERBOSE = args.verbose
         MISSING_CHAR = args.replace_missing_char
         title = get_title_from_file(args.pdf)
-        
+
         # If no name was found, return a non-zero exit code
         if title is None:
             return 1
-        
+
         # If the user wants to change the name of the file
         if args.change_name:
-            
+
             # Change the title to a more pleasant file name
-            new_name = title.lower() # Lower case name
+            new_name = title.lower()  # Lower case name
             valid_chars = set(string.ascii_lowercase + string.digits + " ")
             new_name = "".join(c for c in new_name if c in valid_chars)
             new_name = new_name.replace(' ', '_') + ".pdf"
@@ -562,8 +558,8 @@ def run():
             print(title)
 
         return 0
-    
-    except Exception as e:
+
+    except Exception as e:  # pylint: disable=W0612,W0703
         if VERBOSE:
             traceback.print_exc()
         return 1
