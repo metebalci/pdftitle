@@ -1,6 +1,7 @@
 import sys
 import argparse
 import traceback
+import os
 from pdfminer.pdfparser import PDFParser
 from pdfminer.pdfdocument import PDFDocument
 from pdfminer.psparser import literal_name
@@ -528,9 +529,13 @@ def run():
                             help='pdf file', required=True)
         parser.add_argument('--replace-missing-char',
                             help='replace missing char with the one specified')
+        parser.add_argument('-c', '--change-name', action='store_true',
+                            help='change the name of the pdf file')
         parser.add_argument('-v', '--verbose',
                             action='store_true',
                             help='enable verbose logging')
+        
+        # Parse aguments and set global parameters
         args = parser.parse_args()
         global VERBOSE, MISSING_CHAR
         VERBOSE = args.verbose
@@ -538,9 +543,15 @@ def run():
         title = get_title_from_file(args.pdf)
         if title is None:
             return 1
-        else:
-            print(title)
+        
+        if args.change_name:
+            new_name = f"{title.replace(' ', '_')}.pdf"
+            os.rename(args.pdf, new_name)
+            print(f"Renamed to: {new_name}")
             return 0
+        
+        print(title)
+        return 0
     except Exception as e:
         if VERBOSE:
             traceback.print_exc()
