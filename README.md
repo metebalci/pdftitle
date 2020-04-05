@@ -62,6 +62,10 @@ pdftitle uses pdfminer.six project to parse PDF document with its own implementa
 
 ## Changes
 
+0.7:
+  - changes and fixes for pylint based on [Jakob Guldberg Aaes](https://github.com/jakob1379)'s recommendation.
+  - no functional changes.
+
 0.6:
   - rename file name to title (-c). Contributed by [Tommy Odland](https://github.com/tommyod).
   - pdfminer version updated.
