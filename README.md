@@ -14,12 +14,27 @@ pip install pdftitle
 
 ## Usage
 
+`pdftitle -p <pdf-file>` returns the title of the document if found.
+
 ```
-pdftitle -p <pdf-file> # Print the title of a PDF file
-pdftitle -p <pdf-file> -c # Change the name of the file to the title
-find . -type f -name "*.pdf" -exec pdftitle -p {} -c \; # Change names recursively
+$ pdftitle -p knuth65.pdf 
+On the Translation of Languages from Left to Right
 ```
-Much more info can be seen in verbose mode with `-v`.
+
+`pdftitle -p <pdf-file> -c` changes the document file name to the title of the document if found while removing the non-ascii chars. This command prints the new file name.
+
+```
+$ pdftitle -p knuth65.pdf -c
+on_the_translation_of_languages_from_left_to_right.pdf
+```
+
+You can use it recursively in a directory, e.g.:
+
+```
+find . -type f -name "*.pdf" -exec pdftitle -p {} -c \;
+```
+
+More info can be seen in verbose mode with `-v`.
 
 ## Heuristics
 
@@ -45,7 +60,11 @@ There are two options that you can specify on the command line:
 
 pdftitle uses pdfminer.six project to parse PDF document with its own implementation of the PDF device and PDF interpreter. The names of the variables and calculations in the source code is very similar to how they are given in the PDF spec (http://www.adobe.com/content/dam/Adobe/en/devnet/acrobat/pdfs/pdf_reference_1-7.pdf).
 
-# changes
+## Changes
+
+0.6:
+  - rename file name to title (-c). Contributed by [Tommy Odland](https://github.com/tommyod).
+  - pdfminer version updated.
 
 0.5:
 	- fixed install problem with 0.4

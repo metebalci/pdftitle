@@ -6,3 +6,4 @@ install:
 script:
   - pip install -e .
   - bash test.sh
+  - bash testc.sh

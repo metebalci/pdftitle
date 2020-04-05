@@ -557,11 +557,10 @@ def run():
             new_name = new_name.replace(' ', '_') + ".pdf"
 
             os.rename(args.pdf, new_name)
-            print(f"Renamed to: {new_name}")
-            return 0
-        
-        # Else print the title and return 
-        print(title)
+            print(new_name)
+        else:
+            print(title)
+
         return 0
     
     except Exception as e:
