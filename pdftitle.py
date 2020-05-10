@@ -2,11 +2,12 @@
 # pylint: disable=missing-function-docstring
 # pylint: disable=missing-class-docstring
 # pylint: disable=invalid-name
-import sys
 import argparse
-import traceback
 import os
+import pkg_resources
 import string
+import sys
+import traceback
 from io import StringIO
 from pdfminer.pdfparser import PDFParser
 from pdfminer.pdfdocument import PDFDocument
@@ -420,6 +421,15 @@ class TextOnlyDevice(PDFDevice):
             ts.Tm = utils.translate_matrix(ts.Tm, (tx, ty))
 
 
+def is_title_a_journal(title):
+    journal = False
+    journals_path = pkg_resources.resource_filename(__name__, 'pubmed_journals.txt')
+    with open(journals_path) as f:
+        if title.lower() in f.read().lower():
+            journal = True
+    return journal
+
+
 def get_title_from_io(pdf_io):
     # pylint: disable=too-many-locals
     parser = PDFParser(pdf_io)
@@ -451,30 +461,56 @@ def get_title_from_io(pdf_io):
         for b in dev.blocks:
             verbose(b)
 
-        # find max font size
-        max_tfs = max(dev.blocks, key=lambda x: x[1])[1]
-        verbose('max_tfs: ', max_tfs)
-        # find max blocks with max font size
-        max_blocks = list(filter(lambda x: x[1] == max_tfs, dev.blocks))
-        # find the one with the highest y coordinate
-        # this is the most close to top
-        max_y = max(max_blocks, key=lambda x: x[3])[3]
-        verbose('max_y: ', max_y)
-        found_blocks = list(filter(lambda x: x[3] == max_y, max_blocks))
-        verbose('found blocks')
+        done = False
+        removed = False
 
-        for b in found_blocks:
-            verbose(b)
-        block = found_blocks[0]
-        title = ''.join(block[4]).strip()
+        while not done:
+            # list of font sizes
+            if not removed:
+                tfs_list = [None] * len(dev.blocks)
+                for block_idx in range(len(dev.blocks)):
+                    tfs_list[block_idx] = dev.blocks[block_idx][1]
 
-        # Retrieve missing spaces if needed
-        if " " not in title:
-            title = retrieve_spaces(first_page_text, title)
+            # find max font size
+            max_tfs = max(tfs_list)
+            verbose('max_tfs: ', max_tfs)
+            # find max blocks with max font size
+            max_blocks = list(filter(lambda x: x[1] == max_tfs, dev.blocks))
+            # find the one with the highest y coordinate
+            # this is the most close to top
+            max_y = max(max_blocks, key=lambda x: x[3])[3]
+            verbose('max_y: ', max_y)
+            found_blocks = list(filter(lambda x: x[3] == max_y, max_blocks))
+            verbose('found blocks')
 
-        # Remove duplcate spaces if any are present
-        if "  " in title:
-            title = " ".join(title.split())
+            for b in found_blocks:
+                verbose(b)
+
+            # block = found_blocks[0]
+            block_strs = [None] * len(found_blocks)
+            for block in range(len(found_blocks)):
+                block_strs[block] = ''.join(found_blocks[block][4])
+
+            title = ' '.join(block_strs).strip()
+
+            # Retrieve missing spaces if needed
+            if " " not in title:
+                title = retrieve_spaces(first_page_text, title)
+
+            # Remove duplcate spaces if any are present
+            if "  " in title:
+                title = " ".join(title.split())
+
+            if ":" in title:
+                title = title.replace(':', ' ')
+
+            if is_title_a_journal(title):
+                max_idxs = [i for i, e in enumerate(tfs_list) if e == max_tfs]
+                for idx in range(len(max_idxs)):
+                    tfs_list[max_idxs[idx]] = 0
+                removed = True
+            else:
+                done = True
 
         return title
     else:
