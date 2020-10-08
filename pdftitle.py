@@ -23,6 +23,8 @@ from pdfminer.layout import LAParams
 VERBOSE = False
 MISSING_CHAR = None
 WITHIN_WORD_MOVE_LIMIT = 0
+ALGO = "original"
+TITLE_CASE = False
 
 
 def verbose(*s):
@@ -248,6 +250,7 @@ class TextOnlyInterpreter(PDFPageInterpreter):
             verbose_operator("font=", self.mpts.Tf.fontname)
             self.mpts.Tfs = fontsize
         except KeyError:
+            # pylint: disable=raise-missing-from
             raise PDFInterpreterError('Undefined Font id: %r' % fontid)
 
     def do_Tr(self, render):
@@ -370,8 +373,8 @@ class TextOnlyDevice(PDFDevice):
                 for cid in ts.Tf.decode(obj):
                     self.draw_cid(ts, cid)
 
+    # pylint: disable=too-many-branches
     def draw_cid(self, ts, cid, force_space=False):
-        # pylint: disable=too-many-branches
         verbose("drawing cid: ", cid)
         Trm = utils.mult_matrix((ts.Tfs * ts.Th, 0, 0, ts.Tfs, 0, ts.Trise),
                                 ts.Tm)
@@ -420,8 +423,8 @@ class TextOnlyDevice(PDFDevice):
             ts.Tm = utils.translate_matrix(ts.Tm, (tx, ty))
 
 
+# pylint: disable=too-many-branches, too-many-locals, too-many-statements
 def get_title_from_io(pdf_io):
-    # pylint: disable=too-many-locals
     parser = PDFParser(pdf_io)
     # if pdf is protected with a pwd, 2nd param here is password
     doc = PDFDocument(parser)
@@ -451,22 +454,56 @@ def get_title_from_io(pdf_io):
         for b in dev.blocks:
             verbose(b)
 
-        # find max font size
-        max_tfs = max(dev.blocks, key=lambda x: x[1])[1]
-        verbose('max_tfs: ', max_tfs)
-        # find max blocks with max font size
-        max_blocks = list(filter(lambda x: x[1] == max_tfs, dev.blocks))
-        # find the one with the highest y coordinate
-        # this is the most close to top
-        max_y = max(max_blocks, key=lambda x: x[3])[3]
-        verbose('max_y: ', max_y)
-        found_blocks = list(filter(lambda x: x[3] == max_y, max_blocks))
-        verbose('found blocks')
+        # pylint: disable=W0603
+        global ALGO
+        if ALGO == "original":
+            # find max font size
+            max_tfs = max(dev.blocks, key=lambda x: x[1])[1]
+            verbose('max_tfs: ', max_tfs)
+            # find max blocks with max font size
+            max_blocks = list(filter(lambda x: x[1] == max_tfs, dev.blocks))
+            # find the one with the highest y coordinate
+            # this is the most close to top
+            max_y = max(max_blocks, key=lambda x: x[3])[3]
+            verbose('max_y: ', max_y)
+            found_blocks = list(filter(lambda x: x[3] == max_y, max_blocks))
+            verbose('found blocks')
 
-        for b in found_blocks:
-            verbose(b)
-        block = found_blocks[0]
-        title = ''.join(block[4]).strip()
+            for b in found_blocks:
+                verbose(b)
+            block = found_blocks[0]
+            title = ''.join(block[4]).strip()
+
+        elif ALGO == "max2":
+            # find max font size
+            all_tfs = sorted(list(map(lambda x: x[1], dev.blocks)), reverse=True)
+            max_tfs = all_tfs[0]
+            verbose('max_tfs: ', max_tfs)
+            selected_blocks = []
+            max2_tfs = -1
+            for b in dev.blocks:
+                if max2_tfs == -1:
+                    if b[1] == max_tfs:
+                        selected_blocks.append(b)
+                    elif len(selected_blocks) > 0: # max is added
+                        selected_blocks.append(b)
+                        max2_tfs = b[1]
+                else:
+                    if b[1] == max_tfs or b[1] == max2_tfs:
+                        selected_blocks.append(b)
+                    else:
+                        break
+
+            for b in selected_blocks:
+                verbose(b)
+
+            title = []
+            for b in selected_blocks:
+                title.append(''.join(b[4]))
+            title = ''.join(title)
+
+        else:
+            raise Exception("unsupported ALGO")
 
         # Retrieve missing spaces if needed
         if " " not in title:
@@ -524,20 +561,36 @@ def run():
             epilog='')
         parser.add_argument('-p', '--pdf',
                             help='pdf file', required=True)
+        parser.add_argument('-a', '--algo',
+                            help='algorithm to derive title, default is ' +
+                            'original that finds the text with largest ' +
+                            'font size',
+                            required=False, default="original")
         parser.add_argument('--replace-missing-char',
-                            help='replace missing char with the one specified')
+                            help='replace missing char with the one ' +
+                            'specified')
         parser.add_argument('-c', '--change-name', action='store_true',
                             help='change the name of the pdf file')
+        parser.add_argument('-t', '--title-case', action='store_true',
+                            help='modify the case of final title to be ' +
+                            'title case')
         parser.add_argument('-v', '--verbose',
                             action='store_true',
                             help='enable verbose logging')
 
         # Parse aguments and set global parameters
         args = parser.parse_args()
-        global VERBOSE, MISSING_CHAR  # pylint: disable=W0603
+        # pylint: disable=W0603
+        global VERBOSE, MISSING_CHAR, ALGO, TITLE_CASE
         VERBOSE = args.verbose
         MISSING_CHAR = args.replace_missing_char
+        ALGO = args.algo
+        TITLE_CASE = args.title_case
         title = get_title_from_file(args.pdf)
+
+        if TITLE_CASE:
+            verbose('before title case: %s' % title)
+            title = title.title()
 
         # If no name was found, return a non-zero exit code
         if title is None:

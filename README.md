@@ -62,6 +62,12 @@ pdftitle uses pdfminer.six project to parse PDF document with its own implementa
 
 ## Changes
 
+0.8:
+  - make the title like title case (-t) using Python title method.
+  - pdfminer version updated.
+  - algorithm flag (-a). default is the original algorithm so no change.
+  - max2 algorithm is implemented for issue raised by (https://github.com/BellLongworth), test file is paran2010.pdf.
+
 0.7:
   - changes and fixes for pylint based on [Jakob Guldberg Aaes](https://github.com/jakob1379)'s recommendation.
   - no functional changes.
