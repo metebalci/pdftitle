@@ -81,7 +81,7 @@ Algorithms are selected with -a option.
   - pdfminer version updated.
 
 0.5:
-	- fixed install problem with 0.4
+  - fixed install problem with 0.4
   - pdfminer version updated.
 
 0.4:
