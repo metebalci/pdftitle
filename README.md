@@ -44,9 +44,9 @@ The assumption is that the title of the document is probably the text having the
 
 One problem is that not all documents uses space character between the words, so it is difficult to find word boundaries if space is not used. There is a recovery procedure for this, that may work.
 
-It is possible that PDF has a character that does not exist in the font, in that case you receive an exception, and you can use the --replace-missing-char option to eliminate this issue.
+It is possible that PDF has a character that does not exist in the font, in that case you receive an exception, and you can use the `--replace-missing-char` option to eliminate this issue.
 
-Sometimes the found title has a strange case (first letter is small but last is big etc.), this can be corrected with -t option.
+Sometimes the found title has a strange case (first letter is small but last is big etc.), this can be corrected with `-t` option.
 
 ## Algorithms
 
@@ -62,7 +62,7 @@ Algorithms are selected with -a option.
 
 0.9:
   - retrieve_spaces function is made non-recursive.
-  - eliot algorithm is implemented for [this issue](https://github.com/metebalci/pdftitle/issues/15), test file is woo2019.pdf
+  - eliot algorithm is implemented for [this issue](https://github.com/metebalci/pdftitle/issues/18), test file is woo2019.pdf
   - eliot-tfs option is implemented for eliot algorithm.
   - stack trace was printed only in verbose mode, this behavior is changed and now stack trace is printed always if there is an error.
 
@@ -70,7 +70,7 @@ Algorithms are selected with -a option.
   - make the title like title case (-t) using Python title method.
   - pdfminer version updated.
   - algorithm flag (-a). default is the original algorithm so no change.
-  - max2 algorithm is implemented for issue raised by (https://github.com/BellLongworth), test file is paran2010.pdf.
+  - max2 algorithm is implemented for [this issue](https://github.com/metebalci/pdftitle/issues/15), test file is paran2010.pdf.
 
 0.7:
   - changes and fixes for pylint based on [Jakob Guldberg Aaes](https://github.com/jakob1379)'s recommendation.
