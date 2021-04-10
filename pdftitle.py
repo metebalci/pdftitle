@@ -510,6 +510,7 @@ def get_title_from_io(pdf_io):
             all_tfs = sorted(set(map(lambda x: x[1], dev.blocks)), reverse=True)
             verbose('all_tfs: %s' % all_tfs)
             selected_blocks = []
+            # pylint: disable=cell-var-from-loop
             for tfs_index in ELIOT_TFS:
                 selected_blocks.extend(
                     list(filter(lambda b: b[1] == all_tfs[tfs_index],
@@ -663,7 +664,7 @@ def run():
         if ALGO == 'eliot':
             ELIOT_TFS = args.eliot_tfs.split(',')
             # convert to list of ints
-            ELIOT_TFS = list(map(lambda x:int(x), ELIOT_TFS))
+            ELIOT_TFS = list(map(int, ELIOT_TFS))
         TITLE_CASE = args.title_case
         title = get_title_from_file(args.pdf)
 
