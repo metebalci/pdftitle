@@ -24,6 +24,7 @@ VERBOSE = False
 MISSING_CHAR = None
 WITHIN_WORD_MOVE_LIMIT = 0
 ALGO = "original"
+ELIOT_TFS = [0]
 TITLE_CASE = False
 
 
@@ -455,7 +456,8 @@ def get_title_from_io(pdf_io):
             verbose(b)
 
         # pylint: disable=W0603
-        global ALGO
+        global ALGO, ELIOT_TFS
+        verbose('algo: %s' % ALGO)
         if ALGO == "original":
             # find max font size
             max_tfs = max(dev.blocks, key=lambda x: x[1])[1]
@@ -502,12 +504,43 @@ def get_title_from_io(pdf_io):
                 title.append(''.join(b[4]))
             title = ''.join(title)
 
+        elif ALGO == 'eliot':
+            verbose('eliot-tfs: %s' % ELIOT_TFS)
+            # get all font sizes
+            all_tfs = sorted(set(map(lambda x: x[1], dev.blocks)), reverse=True)
+            verbose('all_tfs: %s' % all_tfs)
+            selected_blocks = []
+            for tfs_index in ELIOT_TFS:
+                selected_blocks.extend(
+                    list(filter(lambda b: b[1] == all_tfs[tfs_index],
+                                dev.blocks)))
+            # sort the selected blocks, put y min first, then x min if y min is
+            # same
+            # 1000000 is a magic number here, assuming no x value is greater
+            # than that
+            selected_blocks = sorted(selected_blocks,
+                                     key=lambda b:b[3]*1000000 + b[2])
+            for b in selected_blocks:
+                verbose(b)
+            title = []
+            for b in selected_blocks:
+                title.append(''.join(b[4]))
+            title = ''.join(title)
+
         else:
             raise Exception("unsupported ALGO")
 
+        verbose('title before space correction: %s' % title)
+
         # Retrieve missing spaces if needed
+        # warning: if you use eliot algorithm with multiple tfs
+        # this procedure may not work
         if " " not in title:
-            title = retrieve_spaces(first_page_text, title)
+            title_with_spaces = retrieve_spaces_opt(first_page_text, title)
+            # the procedure above may return empty string
+            # in that case, leave the title as it is
+            if len(title_with_spaces) > 0:
+                title = title_with_spaces
 
         # Remove duplcate spaces if any are present
         if "  " in title:
@@ -523,11 +556,17 @@ def get_title_from_file(pdf_file):
         return get_title_from_io(raw_file)
 
 
+# this procedure is not used anymore
+# it is left here at the moment only for reference
 def retrieve_spaces(first_page, title_without_space, p=0, t=0, result=""):
     # Correct the space problem
     #  if the document does not use space character between the words
     # Stop condition : all the first page has been explored or
     #  we have explored all the letters of the title
+
+    verbose('p: %s' % p)
+    verbose('t: %s' % t)
+    verbose('result: %s' % result)
 
     # pylint: disable=no-else-return
     if (p >= len(first_page) or t >= len(title_without_space)):
@@ -543,14 +582,42 @@ def retrieve_spaces(first_page, title_without_space, p=0, t=0, result=""):
         if first_page[p] == " " or first_page[p] == "\n":
             result += " "
         # If letter p-1 in page corresponds to letter t-1 in title,
-        #  but lette p does not corresponds to letter p,
+        #  but letter p does not corresponds to letter p,
         # we are not exploring the title in the page
         else:
             t = 0
             result = ""
 
-    return retrieve_spaces(
-        first_page, title_without_space, p+1, t, result)
+    return retrieve_spaces(first_page, title_without_space, p+1, t, result)
+
+
+# optimized, recursion removed
+def retrieve_spaces_opt(first_page, title_without_space, p=0, t=0, result=""):
+    while True:
+        verbose('p: %s, t: %s, result: %s' % (p, t, result))
+        # Stop condition : all the first page has been explored or
+        #  we have explored all the letters of the title
+
+        # pylint: disable=no-else-return
+        if (p >= len(first_page) or t >= len(title_without_space)):
+            return result
+
+        elif first_page[p].lower() == title_without_space[t].lower():
+            result += first_page[p]
+            t += 1
+
+        elif t != 0:
+            # Add spaces if there is space or a wordwrap
+            if first_page[p] == " " or first_page[p] == "\n":
+                result += " "
+            # If letter p-1 in page corresponds to letter t-1 in title,
+            #  but letter p does not corresponds to letter p,
+            # we are not exploring the title in the page
+            else:
+                t = 0
+                result = ""
+
+        p += 1
 
 
 def run():
@@ -560,12 +627,14 @@ def run():
             description='Extracts the title of a PDF article',
             epilog='')
         parser.add_argument('-p', '--pdf',
-                            help='pdf file', required=True)
+                            help='pdf file',
+                            required=True)
         parser.add_argument('-a', '--algo',
                             help='algorithm to derive title, default is ' +
                             'original that finds the text with largest ' +
                             'font size',
-                            required=False, default="original")
+                            required=False,
+                            default="original")
         parser.add_argument('--replace-missing-char',
                             help='replace missing char with the one ' +
                             'specified')
@@ -577,14 +646,24 @@ def run():
         parser.add_argument('-v', '--verbose',
                             action='store_true',
                             help='enable verbose logging')
+        parser.add_argument('--eliot-tfs',
+                            help='the font size list to use for eliot ' +
+                            'algorithm, list separated by comma e.g. 0,1,2 ,' +
+                            'default 0 (max) only',
+                            required=False,
+                            default='0')
 
         # Parse aguments and set global parameters
         args = parser.parse_args()
         # pylint: disable=W0603
-        global VERBOSE, MISSING_CHAR, ALGO, TITLE_CASE
+        global VERBOSE, MISSING_CHAR, ALGO, ELIOT_TFS, TITLE_CASE
         VERBOSE = args.verbose
         MISSING_CHAR = args.replace_missing_char
         ALGO = args.algo
+        if ALGO == 'eliot':
+            ELIOT_TFS = args.eliot_tfs.split(',')
+            # convert to list of ints
+            ELIOT_TFS = list(map(lambda x:int(x), ELIOT_TFS))
         TITLE_CASE = args.title_case
         title = get_title_from_file(args.pdf)
 
@@ -613,8 +692,7 @@ def run():
         return 0
 
     except Exception as e:  # pylint: disable=W0612,W0703
-        if VERBOSE:
-            traceback.print_exc()
+        traceback.print_exc()
         return 1
 
 

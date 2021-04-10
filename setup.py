@@ -9,7 +9,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='pdftitle',
-    version='0.8',
+    version='0.9',
     description='pdftitle is a small utility to extract the title of a PDF article.',
     long_description=long_description,
     long_description_content_type='text/markdown',
