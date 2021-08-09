@@ -382,11 +382,11 @@ class TextOnlyDevice(PDFDevice):
         if len(self.current_block[4]) > 0:
             self.blocks.append(self.current_block)
 
-    # pdf spec, page 410
+    # pdf spec, 5.3.3 text space details
     def new_tx(self, w, Tj, Tfs, Tc, Tw, Th):  # pylint: disable=no-self-use,too-many-arguments
         return ((w - Tj / 1000) * Tfs + Tc + Tw) * Th
 
-    # pdf spec, page 410
+    # pdf spec, 5.3.3 text space details
     def new_ty(self, w, Tj, Tfs, Tc, Tw):  # pylint: disable=no-self-use,too-many-arguments
         return (w - Tj / 1000) * Tfs + Tc + Tw
 
@@ -419,13 +419,19 @@ class TextOnlyDevice(PDFDevice):
     # pylint: disable=too-many-branches
     def draw_cid(self, ts, cid, force_space=False):
         verbose("drawing cid: ", cid)
-        Trm = utils.mult_matrix((ts.Tfs * ts.Th, 0, 0, ts.Tfs, 0, ts.Trise),
-                                ts.Tm)
+        # see official PDF Reference 5.3.3 Text Space Details
+        Trm = utils.mult_matrix(
+            (ts.Tfs * ts.Th,    0,              # ,0
+             0,                 ts.Tfs,         # ,0
+             0,                 ts.Trise        # ,1
+             ),
+             ts.Tm)
         verbose('Trm', Trm)
-        if Trm[1] != 0:
-            return
-        if Trm[2] != 0:
-            return
+        # note: before v0.10, Trm[1] and Trm[2] is checked to be 0
+        # and if it is not, the character omitted (return from func)
+        # this is correct if only translation Trm[4,5] and
+        # scaling Trm[0,3] exists
+        # but theoretically Trm[1,2] can also have values
         if cid == 32 or force_space:
             Tw = ts.Tw
         else:
@@ -439,7 +445,8 @@ class TextOnlyDevice(PDFDevice):
             if MISSING_CHAR:
                 unichar = MISSING_CHAR
             else:
-                raise
+                raise Exception("PDF contains a unicode char that does not " +
+                                "exist in the font")
         (gx, gy) = utils.apply_matrix_pt(Trm, (0, 0))
         verbose("drawing unichar: '", unichar, "' @", gx, ",", gy)
         tfs = Trm[0]
@@ -457,6 +464,7 @@ class TextOnlyDevice(PDFDevice):
             pass
         else:
             w = ts.Tf.char_width(cid)
+            # below Tj is sent as zero because it is adjust in the caller
             if ts.Tf.is_vertical():
                 tx = 0
                 ty = self.new_ty(w, 0, ts.Tfs, ts.Tc, Tw)
