@@ -60,6 +60,9 @@ Algorithms are selected with -a option.
 
 ## Changes
 
+0.11:
+  - functionally same as 0.10, including some pylint fixes.
+
 0.10:
   - --page-number argument added. Related issue is [here](https://github.com/metebalci/pdftitle/issues/22).
   - potentially a fix implemented for some files having non-zero Trm[1] and Trm2[] elements. This change might cause different outputs than previous versions of pdftitle. This is related to the issue raised [here](https://github.com/metebalci/pdftitle/issues/24).
