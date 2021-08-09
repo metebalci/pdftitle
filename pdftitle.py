@@ -26,7 +26,7 @@ WITHIN_WORD_MOVE_LIMIT = 0
 ALGO = "original"
 ELIOT_TFS = [0]
 TITLE_CASE = False
-
+PAGE_NUMBER = 1
 
 def verbose(*s):
     if VERBOSE:
@@ -376,6 +376,9 @@ class TextOnlyDevice(PDFDevice):
 
     # at the end of the file, we need to recover last paragraph
     def recover_last_paragraph(self):
+        if self.current_block is None:
+            raise Exception("current block is None, this might be a bug. " +
+                            "please report it together with the pdf file")
         if len(self.current_block[4]) > 0:
             self.blocks.append(self.current_block)
 
@@ -480,10 +483,23 @@ def get_title_from_io(pdf_io):
         converter = TextConverter(rm, first_page, laparams=LAParams())
         page_interpreter = PDFPageInterpreter(rm, converter)
 
+        current_page_number = 0
+
         for page in PDFPage.create_pages(doc):
-            interpreter.process_page(page)
-            page_interpreter.process_page(page)
-            break
+            current_page_number = current_page_number + 1
+            verbose("page", current_page_number)
+            if current_page_number == PAGE_NUMBER:
+                verbose("processing page", current_page_number)
+                interpreter.process_page(page)
+                page_interpreter.process_page(page)
+                current_page_number = -1
+                break
+
+        if current_page_number == 0:
+            raise Exception("file has no pages")
+
+        if current_page_number > 0:
+            raise Exception("specified page does not exist")
 
         converter.close()
         first_page_text = first_page.getvalue()
@@ -692,14 +708,22 @@ def run():
                             'default 0 (max) only',
                             required=False,
                             default='0')
+        parser.add_argument('--page-number',
+                            help='the page number (instead of first page) ' +
+                            'to extract the title from (starts from 1)',
+                            required=False,
+                            type=int,
+                            default=1)
 
         # Parse aguments and set global parameters
         args = parser.parse_args()
         # pylint: disable=W0603
-        global VERBOSE, MISSING_CHAR, ALGO, ELIOT_TFS, TITLE_CASE
+        global VERBOSE, MISSING_CHAR, ALGO, ELIOT_TFS, TITLE_CASE, PAGE_NUMBER
         VERBOSE = args.verbose
+        verbose(args)
         MISSING_CHAR = args.replace_missing_char
         ALGO = args.algo
+        PAGE_NUMBER = args.page_number
         if ALGO == 'eliot':
             ELIOT_TFS = args.eliot_tfs.split(',')
             # convert to list of ints
