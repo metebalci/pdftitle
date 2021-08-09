@@ -102,159 +102,120 @@ class TextOnlyInterpreter(PDFPageInterpreter):
     # omit these operators
     def do_w(self, linewidth):
         verbose_operator("PDF OPERATOR w")
-        pass
 
     def do_J(self, linecap):
         verbose_operator("PDF OPERATOR J")
-        pass
 
     def do_j(self, linejoin):
         verbose_operator("PDF OPERATOR j")
-        pass
 
     def do_M(self, miterlimit):
         verbose_operator("PDF OPERATOR M")
-        pass
 
     def do_d(self, dash, phase):
         verbose_operator("PDF OPERATOR d")
-        pass
 
     def do_ri(self, intent):
         verbose_operator("PDF OPERATOR ri")
-        pass
 
     def do_i(self, flatness):
         verbose_operator("PDF OPERATOR i")
-        pass
 
     def do_m(self, x, y):
         verbose_operator("PDF OPERATOR m")
-        pass
 
     def do_l(self, x, y):
         verbose_operator("PDF OPERATOR l")
-        pass
 
     def do_c(self, x1, y1, x2, y2, x3, y3):  # pylint: disable=too-many-arguments
         verbose_operator("PDF OPERATOR c")
-        pass
 
     def do_y(self, x1, y1, x3, y3):
         verbose_operator("PDF OPERATOR y")
-        pass
 
     def do_h(self):
         verbose_operator("PDF OPERATOR h")
-        pass
 
     def do_re(self, x, y, w, h):
         verbose_operator("PDF OPERATOR re")
-        pass
 
     def do_S(self):
         verbose_operator("PDF OPERATOR S")
-        pass
 
     def do_s(self):
         verbose_operator("PDF OPERATOR s")
-        pass
 
     def do_f(self):
         verbose_operator("PDF OPERATOR f")
-        pass
 
     def do_f_a(self):
         verbose_operator("PDF OPERATOR fa")
-        pass
 
     def do_B(self):
         verbose_operator("PDF OPERATOR B")
-        pass
 
     def do_B_a(self):
         verbose_operator("PDF OPERATOR Ba")
-        pass
 
     def do_b(self):
         verbose_operator("PDF OPERATOR b")
-        pass
 
     def do_b_a(self):
         verbose_operator("PDF OPERATOR ba")
-        pass
 
     def do_n(self):
         verbose_operator("PDF OPERATOR n")
-        pass
 
     def do_W(self):
         verbose_operator("PDF OPERATOR W")
-        pass
 
     def do_W_a(self):
         verbose_operator("PDF OPERATOR Wa")
-        pass
 
     def do_CS(self, name):
         verbose_operator("PDF OPERATOR CS")
-        pass
 
     def do_cs(self, name):
         verbose_operator("PDF OPERATOR cs")
-        pass
 
     def do_G(self, gray):
         verbose_operator("PDF OPERATOR G")
-        pass
 
     def do_g(self, gray):
         verbose_operator("PDF OPERATOR g")
-        pass
 
     def do_RG(self, r, g, b):
         verbose_operator("PDF OPERATOR RG")
-        pass
 
     def do_rg(self, r, g, b):
         verbose_operator("PDF OPERATOR rg")
-        pass
 
     def do_K(self, c, m, y, k):
         verbose_operator("PDF OPERATOR K")
-        pass
 
     def do_k(self, c, m, y, k):
         verbose_operator("PDF OPERATOR k")
-        pass
 
     def do_SCN(self):
         verbose_operator("PDF OPERATOR SCN")
-        pass
 
     def do_scn(self):
         verbose_operator("PDF OPERATOR scn")
-        pass
 
-    def so_SC(self):
+    def do_SC(self):
         verbose_operator("PDF OPERATOR SC")
-        pass
 
     def do_sc(self):
         verbose_operator("PDF OPERATOR sc")
-        pass
 
     def do_sh(self, name):
         verbose_operator("PDF OPERATOR sh")
-        pass
 
     def do_EI(self, obj):
         verbose_operator("PDF OPERATOR EI")
-        pass
 
     def do_Do(self, xobjid):
         verbose_operator("PDF OPERATOR Do: xobjid=", xobjid)
-        pass
 
     # text object begin/end
     def do_BT(self):
@@ -441,12 +402,12 @@ class TextOnlyDevice(PDFDevice):
                 unichar = ' '
             else:
                 unichar = ts.Tf.to_unichr(cid)
-        except PDFUnicodeNotDefined:
+        except PDFUnicodeNotDefined as unicode_not_defined:
             if MISSING_CHAR:
                 unichar = MISSING_CHAR
             else:
                 raise Exception("PDF contains a unicode char that does not " +
-                                "exist in the font")
+                                "exist in the font") from unicode_not_defined
         (gx, gy) = utils.apply_matrix_pt(Trm, (0, 0))
         verbose("drawing unichar: '", unichar, "' @", gx, ",", gy)
         tfs = Trm[0]
