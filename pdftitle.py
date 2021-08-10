@@ -649,7 +649,7 @@ def run():
     try:
         parser = argparse.ArgumentParser(
             prog='pdftitle',
-            description='Extracts the title of a PDF article',
+            description='Extracts the title from a PDF file',
             epilog='')
         parser.add_argument('-p', '--pdf',
                             help='pdf file',
