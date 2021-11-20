@@ -1,0 +1,3 @@
+
+# ignore files created by `pip install -e .`
+*.egg-info

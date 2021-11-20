@@ -1,5 +1,5 @@
 #/bin/bash
-cp knuth65.pdf test.pdf
+cp tests/data/knuth65.pdf test.pdf
 title=$(pdftitle -p test.pdf -c)
 if [ $? -eq 0 ]; then
   # title should be the new file name

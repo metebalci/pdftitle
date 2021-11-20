@@ -1,5 +1,5 @@
 #/bin/bash
-title=$(pdftitle -p knuth65.pdf)
+title=$(pdftitle -p tests/data/knuth65.pdf)
 if [ $? -eq 0 ]; then
   if [ ! "$title" = "On the Translation of Languages from Left to Right" ]; then
     exit 1

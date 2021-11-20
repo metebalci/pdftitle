@@ -2,14 +2,28 @@ from setuptools import setup, find_packages
 from codecs import open
 from os import path
 
-here = path.abspath(path.dirname(__file__))
 
-with open(path.join(here, 'README.md'), encoding='utf-8') as f:
+
+packagename = "pdftitle"
+
+# consider the path of `setup.py` as root directory:
+PROJECTROOT = path.dirname(__file__)
+release_path = path.join(PROJECTROOT, "src", packagename, "release.py")
+with open(release_path, encoding="utf8") as release_file:
+    __version__ = release_file.read().split('__version__ = "', 1)[1].split('"', 1)[0]
+
+
+
+with open("requirements.txt") as requirements_file:
+    requirements = requirements_file.read()
+
+
+with open(path.join(PROJECTROOT, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
-    name='pdftitle',
-    version='0.11',
+    name=packagename,
+    version=__version__,
     description='pdftitle is a small utility to extract the title from a PDF file.',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -27,8 +41,9 @@ setup(
     ],
 
     keywords='pdf text extract',
-    py_modules=['pdftitle'],
-    install_requires=['pdfminer.six>=20201018'],
+    packages=find_packages("src"),
+    package_dir={"": "src"},
+    install_requires=requirements,
 
     entry_points={
         'console_scripts': [
