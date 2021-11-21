@@ -1,6 +1,6 @@
 # pdftitle
 
-[![Build Status](https://travis-ci.com/metebalci/pdftitle.svg?branch=master)](https://travis-ci.com/metebalci/pdftitle)
+[![CircleCI](https://circleci.com/gh/metebalci/pdftitle/tree/master.svg?style=svg)](https://circleci.com/gh/metebalci/pdftitle/tree/master)
 
 pdftitle is a small utility to extract the title of a PDF article.
 
