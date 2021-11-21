@@ -2,6 +2,7 @@
 # pylint: disable=missing-function-docstring
 # pylint: disable=missing-class-docstring
 # pylint: disable=invalid-name
+# pylint: disable=consider-using-f-string
 import sys
 import argparse
 import traceback
@@ -479,7 +480,7 @@ def get_title_from_io(pdf_io):
         for b in dev.blocks:
             verbose(b)
 
-        # pylint: disable=W0603
+        # pylint: disable=W0602,W0603
         global ALGO, ELIOT_TFS
         verbose('algo: %s' % ALGO)
         if ALGO == "original":
