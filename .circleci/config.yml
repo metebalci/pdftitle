@@ -6,11 +6,7 @@ jobs:
       - image: circleci/python:3.6
     steps:
       - checkout
-      - run:
-          command: |
-            pip install -r requirements.txt
-            pip install pylint
-      - run:
-          command: |
-            pip install -e .
-            make test
+      - run: pip install -r requirements.txt
+      - run: pip install pylint
+      - run: pip install -e .
+      - run: make test
