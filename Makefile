@@ -1,7 +1,6 @@
 
 test: tests/__init__.py
-	# currently pylint results in nonzero exitcode -> comment out
-	# pylint src/pdftitle/pdftitle.py
+	pylint src/pdftitle/pdftitle.py
 	python -m unittest discover
 
 upload: pdftitle.py setup.py
