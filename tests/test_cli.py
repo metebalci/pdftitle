@@ -2,10 +2,6 @@ import unittest
 import os
 import subprocess
 
-from ipydex import IPS, activate_ips_on_exception
-
-activate_ips_on_exception()
-
 
 def command_with_output(cmd):
 
