@@ -1,6 +1,8 @@
 import unittest
 import os
 import subprocess
+from subprocess import PIPE
+import sys
 
 
 def command_with_output(cmd):
@@ -10,10 +12,15 @@ def command_with_output(cmd):
 
     assert isinstance(cmd, (list, tuple))
 
-    res = subprocess.run(cmd, capture_output=True)
+
+    if sys.version_info >= (3, 7):
+        res = subprocess.run(cmd, capture_output=True)
+    else:
+        # this is old and might be dropped with support for python3.6
+        res = subprocess.run(cmd, stdout=PIPE, stderr=PIPE)
+
     res.stdout = res.stdout.decode("utf8")
     res.stderr = res.stderr.decode("utf8")
-
     return res
 
 
