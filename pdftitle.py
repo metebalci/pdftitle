@@ -561,16 +561,16 @@ def get_title_from_io(pdf_io):
         # Retrieve missing spaces if needed
         # warning: if you use eliot algorithm with multiple tfs
         # this procedure may not work
-        if " " not in title:
+        if " " not in title or FIX_SPACES:
             title_with_spaces = retrieve_spaces_opt(first_page_text, title)
             # the procedure above may return empty string
             # in that case, leave the title as it is
             if len(title_with_spaces) > 0:
                 title = title_with_spaces
 
-        # Remove duplcate spaces if any are present
+        # Remove duplicate spaces and trailing/leading newlines if any are present
         if "  " in title:
-            title = " ".join(title.split())
+            title = " ".join(title.split()).strip()
 
         return title
     else:
@@ -597,7 +597,7 @@ def retrieve_spaces(first_page, title_without_space, p=0, t=0, result=""):
     # pylint: disable=no-else-return
     if (p >= len(first_page) or t >= len(title_without_space)):
         return result
-
+    
     # Add letter to our result if it corresponds to the title
     elif first_page[p].lower() == title_without_space[t].lower():
         result += first_page[p]
@@ -632,12 +632,21 @@ def retrieve_spaces_opt(first_page, title_without_space, p=0, t=0, result=""):
             result += first_page[p]
             t += 1
 
+        # if the current character is the same as the previous
+        # it can be we're still exploring the title
+        elif first_page[p].lower() == first_page[p-1].lower():
+            # shift the result one character
+            result = result[1:]
+            # add the current character to the result,
+            # but don't +1 the title cursor
+            result += first_page[p]
+
         elif t != 0:
             # Add spaces if there is space or a wordwrap
             if first_page[p] == " " or first_page[p] == "\n":
                 result += " "
             # If letter p-1 in page corresponds to letter t-1 in title,
-            #  but letter p does not corresponds to letter p,
+            #  but letter p does not corresponds to letter t,
             # we are not exploring the title in the page
             else:
                 t = 0
@@ -664,6 +673,8 @@ def run():
         parser.add_argument('--replace-missing-char',
                             help='replace missing char with the one ' +
                             'specified')
+        parser.add_argument('--fix-spaces',
+                            help='force fixing spaces', action='store_true')
         parser.add_argument('-c', '--change-name', action='store_true',
                             help='change the name of the pdf file')
         parser.add_argument('-t', '--title-case', action='store_true',
@@ -688,12 +699,13 @@ def run():
         # Parse aguments and set global parameters
         args = parser.parse_args()
         # pylint: disable=W0603
-        global VERBOSE, MISSING_CHAR, ALGO, ELIOT_TFS, TITLE_CASE, PAGE_NUMBER
+        global VERBOSE, MISSING_CHAR, ALGO, ELIOT_TFS, TITLE_CASE, PAGE_NUMBER, FIX_SPACES
         VERBOSE = args.verbose
         verbose(args)
         MISSING_CHAR = args.replace_missing_char
         ALGO = args.algo
         PAGE_NUMBER = args.page_number
+        FIX_SPACES = args.fix_spaces
         if ALGO == 'eliot':
             ELIOT_TFS = args.eliot_tfs.split(',')
             # convert to list of ints
