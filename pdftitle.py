@@ -687,7 +687,7 @@ def run(arg_str: Optional[Sequence[str]] = None):
                             default=1)
 
         # Parse aguments and set global parameters
-        args = parser.parse_args()
+        args = parser.parse_args(arg_str)
         # pylint: disable=W0603
         global VERBOSE, MISSING_CHAR, ALGO, ELIOT_TFS, TITLE_CASE, PAGE_NUMBER
         VERBOSE = args.verbose
