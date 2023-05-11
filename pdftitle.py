@@ -9,6 +9,7 @@ import traceback
 import os
 import string
 from io import StringIO
+from typing import Optional, Sequence
 from pdfminer.pdfparser import PDFParser
 from pdfminer.pdfdocument import PDFDocument
 from pdfminer.psparser import literal_name
@@ -646,7 +647,7 @@ def retrieve_spaces_opt(first_page, title_without_space, p=0, t=0, result=""):
         p += 1
 
 
-def run():
+def run(arg_str: Optional[Sequence[str]] = None):
     try:
         parser = argparse.ArgumentParser(
             prog='pdftitle',
