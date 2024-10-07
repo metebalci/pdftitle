@@ -1,17 +1,17 @@
-
-from typing import Optional
-
-from .logging import verbose
+"""PDFDevice implementation"""
 
 from pdfminer import utils
 from pdfminer.pdfdevice import PDFDevice
 from pdfminer.pdffont import PDFUnicodeNotDefined
 
+from .logging import verbose
+
 class TextOnlyDevice(PDFDevice):
+    """PDFDevice implementation"""
 
     def __init__(
-            self, 
-            rsrcmgr, 
+            self,
+            rsrcmgr,
             missing_char):
         PDFDevice.__init__(self, rsrcmgr)
         self.last_state = None
@@ -25,6 +25,7 @@ class TextOnlyDevice(PDFDevice):
 
     # at the end of the file, we need to recover last paragraph
     def recover_last_paragraph(self):
+        """recover_last_paragraph"""
         if self.current_block is None:
             raise Exception("current block is None, this might be a bug. " +
                             "please report it together with the pdf file")
@@ -32,14 +33,19 @@ class TextOnlyDevice(PDFDevice):
             self.blocks.append(self.current_block)
 
     # pdf spec, 5.3.3 text space details
-    def new_tx(self, w, Tj, Tfs, Tc, Tw, Th):  # -pylint: disable=no-self-use,too-many-arguments
+    # pylint: disable=invalid-name, no-self-use, too-many-arguments
+    def new_tx(self, w, Tj, Tfs, Tc, Tw, Th):
+        """new_tx"""
         return ((w - Tj / 1000) * Tfs + Tc + Tw) * Th
 
     # pdf spec, 5.3.3 text space details
-    def new_ty(self, w, Tj, Tfs, Tc, Tw):  # -pylint: disable=no-self-use,too-many-arguments
+    # pylint: disable=invalid-name, no-self-use, too-many-arguments
+    def new_ty(self, w, Tj, Tfs, Tc, Tw):
+        """new_ty"""
         return (w - Tj / 1000) * Tfs + Tc + Tw
 
     def process_string(self, ts, array):
+        """process_string"""
         verbose('SHOW STRING ts: ', ts)
         verbose('SHOW STRING array: ', array)
         for obj in array:
@@ -65,8 +71,9 @@ class TextOnlyDevice(PDFDevice):
                 for cid in ts.Tf.decode(obj):
                     self.draw_cid(ts, cid)
 
-    # -pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches
     def draw_cid(self, ts, cid, force_space=False):
+        """draw_cid"""
         verbose("drawing cid: ", cid)
         # see official PDF Reference 5.3.3 Text Space Details
         Trm = utils.mult_matrix(
