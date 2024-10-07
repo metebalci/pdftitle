@@ -1,12 +1,12 @@
 
-test: pdftitle.py test.sh test_max2.sh test_eliot.sh testc.sh
-	pylint pdftitle.py
-	bash test.sh
-	bash test_max2.sh
-	bash test_eliot.sh
-	bash testc.sh
+pylint:
+	pylint pdftitle
 
-upload: pdftitle.py setup.py
+sdist:
+	rm -rf dist
+	python setup.py sdist
+
+upload:
 	rm -rf dist
 	python setup.py sdist
 	twine upload dist/*

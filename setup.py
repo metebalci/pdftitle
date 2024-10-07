@@ -9,7 +9,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='pdftitle',
-    version='0.11',
+    version='0.12',
     description='pdftitle is a small utility to extract the title from a PDF file.',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -19,16 +19,16 @@ setup(
     license='GPLv3',
     classifiers=[
         'Development Status :: 3 - Alpha',
-	'Environment :: Console',
-	'Intended Audience :: Science/Research',
-	'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
-	'Topic :: Utilities',
-        'Programming Language :: Python :: 3.6',
+        'Environment :: Console',
+        'Intended Audience :: Science/Research',
+        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
+        'Topic :: Utilities',
+        'Programming Language :: Python :: 3.8',
     ],
 
     keywords='pdf text extract',
     py_modules=['pdftitle'],
-    install_requires=['pdfminer.six>=20201018'],
+    install_requires=['pdfminer.six>=20240706'],
 
     entry_points={
         'console_scripts': [

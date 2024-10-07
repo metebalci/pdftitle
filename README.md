@@ -60,6 +60,11 @@ Algorithms are selected with -a option.
 
 ## Changes
 
+0.12:
+  - reorganized the project structure and files (see Additional notes for v0.12 below)
+  - fixes bugs #31, #33
+  - pdfminer version updated
+
 0.11:
   - functionally same as 0.10, including some pylint fixes.
 
@@ -105,3 +110,15 @@ Algorithms are selected with -a option.
   - added chardet as a dependency
   - algorithm is changed but there are problems with finding the word boundaries
     
+## Additional notes for v0.12
+
+The expected and normal use of pdftitle is not changed. However, if you have integrated pdftitle to another project (i.e. using it as a library), there are the following changes:
+
+- `pdftitle.py` is moved from the root folder of the project to `pdftitle` directory
+- some functionality (having their own classes) are moved into separate files (`TextOnlyDevice`, `TextOnlyInterpreter`, `TextState`)
+- verbose logging support functions are moved to `__init__.py`
+- pdftitle specific exceptions are moved and raised as PDFTitleException (was Exception)
+- global variables are removed, thus the signature of `get_title_from_file` and `get_title_from_io` functions are changed to include the parameters (fixes #33)
+- `get_title_from_io` and `get_title_from_file` are also imported in `__init__.py`
+- running pdftitle command only handles PDFTitleException gracefully (prints stack trace and exits with non-zero error code). it was handling Exception gracefully before.
+- type hints are added for public methods
