@@ -1,7 +1,7 @@
 
 from typing import Optional
 
-from . import verbose
+from .logging import verbose
 
 from pdfminer import utils
 from pdfminer.pdfdevice import PDFDevice

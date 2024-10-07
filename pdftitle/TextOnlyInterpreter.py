@@ -1,5 +1,5 @@
 
-from . import verbose_operator
+from .logging import verbose_operator
 from .TextState import TextState
 
 from pdfminer import utils
