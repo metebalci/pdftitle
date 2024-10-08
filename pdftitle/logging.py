@@ -1,5 +1,5 @@
-
 """logging support."""
+
 
 class Logger:
     """Logger effectively a singleton but not enforced"""
@@ -7,7 +7,7 @@ class Logger:
     def __init__(self):
         self._verbose = False
 
-    def set_verbose(self, verbose_mode:bool) -> None:
+    def set_verbose(self, verbose_mode: bool) -> None:
         """set verbose mode"""
         self._verbose = verbose_mode
 
@@ -25,11 +25,14 @@ class Logger:
         if self._verbose:
             print(*args)
 
+
 logger = Logger()
+
 
 def verbose(*args):
     """print if verbose"""
     logger.verbose(args)
+
 
 def verbose_operator(*args):
     """print if verbose"""

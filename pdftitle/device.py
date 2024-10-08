@@ -6,13 +6,11 @@ from pdfminer.pdffont import PDFUnicodeNotDefined
 
 from .logging import verbose
 
+
 class TextOnlyDevice(PDFDevice):
     """PDFDevice implementation"""
 
-    def __init__(
-            self,
-            rsrcmgr,
-            missing_char):
+    def __init__(self, rsrcmgr, missing_char):
         PDFDevice.__init__(self, rsrcmgr)
         self.last_state = None
         # contains (font, font_size, string)
@@ -27,8 +25,11 @@ class TextOnlyDevice(PDFDevice):
     def recover_last_paragraph(self):
         """recover_last_paragraph"""
         if self.current_block is None:
-            raise Exception("current block is None, this might be a bug. " +
-                            "please report it together with the pdf file")
+            raise Exception(
+                "current block is None, this might be a bug. "
+                + "please report it together with the pdf file"
+            )
+
         if len(self.current_block[4]) > 0:
             self.blocks.append(self.current_block)
 
@@ -46,14 +47,14 @@ class TextOnlyDevice(PDFDevice):
 
     def process_string(self, ts, array):
         """process_string"""
-        verbose('SHOW STRING ts: ', ts)
-        verbose('SHOW STRING array: ', array)
+        verbose(f"SHOW STRING ts: {ts}")
+        verbose(f"SHOW STRING array: {array}")
         for obj in array:
-            verbose("processing obj: ", obj)
+            verbose(f"processing obj: {obj}")
             # this comes from TJ, number translates Tm
             if utils.isnumber(obj):
                 Tj = obj
-                verbose("processing translation: ", Tj)
+                verbose(f"processing translation: {Tj}")
                 # translating Tm, change tx, ty according to direction
                 if ts.Tf.is_vertical():
                     tx = 0
@@ -76,13 +77,15 @@ class TextOnlyDevice(PDFDevice):
         """draw_cid"""
         verbose("drawing cid: ", cid)
         # see official PDF Reference 5.3.3 Text Space Details
+        # fmt: off
         Trm = utils.mult_matrix(
             (ts.Tfs * ts.Th,    0,              # ,0
              0,                 ts.Tfs,         # ,0
              0,                 ts.Trise        # ,1
              ),
              ts.Tm)
-        verbose('Trm', Trm)
+        # fmt: on
+        verbose(f"Trm {Trm}")
         # note: before v0.10, Trm[1] and Trm[2] is checked to be 0
         # and if it is not, the character omitted (return from func)
         # this is correct if only translation Trm[4,5] and
@@ -94,28 +97,30 @@ class TextOnlyDevice(PDFDevice):
             Tw = 0
         try:
             if force_space:
-                unichar = ' '
+                unichar = " "
             else:
                 unichar = ts.Tf.to_unichr(cid)
         except PDFUnicodeNotDefined as unicode_not_defined:
             if self.missing_char:
                 unichar = self.missing_char
             else:
-                raise Exception("PDF contains a unicode char that does not " +
-                                "exist in the font") from unicode_not_defined
+                raise Exception(
+                    "PDF contains a unicode char that does not exist in the font"
+                    + ", consider using --replace-missing-char option"
+                ) from unicode_not_defined
+
         (gx, gy) = utils.apply_matrix_pt(Trm, (0, 0))
         verbose("drawing unichar: '", unichar, "' @", gx, ",", gy)
         tfs = Trm[0]
         if self.current_block is None:
             self.current_block = (ts.Tf, tfs, gx, gy, [unichar])
-        elif ((self.current_block[0] == ts.Tf) and
-              (self.current_block[1] == tfs)):
+        elif (self.current_block[0] == ts.Tf) and (self.current_block[1] == tfs):
             self.current_block[4].append(unichar)
         else:
             self.blocks.append(self.current_block)
             self.current_block = (ts.Tf, tfs, gx, gy, [unichar])
-        verbose('current block: ', self.current_block)
-        verbose('blocks: ', self.blocks)
+        verbose("current block: ", self.current_block)
+        verbose("blocks: ", self.blocks)
         if force_space:
             pass
         else:
