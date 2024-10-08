@@ -2,9 +2,11 @@
 
 [![CircleCI](https://circleci.com/gh/metebalci/pdftitle/tree/master.svg?style=svg)](https://circleci.com/gh/metebalci/pdftitle/tree/master)
 
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
 pdftitle is a small utility to extract the title of a PDF article.
 
-When you have some PDF articles where you cannot understand their content from their filenames, you can use this utility to extract the title and rename the files if you want. This utility does not look at the metadata of a PDF file. The title in the metadata can be empty. It works for ~80% of the PDFs I have and it is especially suited for PDF files of scientific articles.
+When you have some PDF articles where you cannot understand their content from their filenames, you can use this utility to extract the title and rename the files if you want. This utility does not look at the metadata of a PDF file. It is particularly suited for PDF files of scientific articles.
 
 pdftitle uses pdfminer.six project to parse PDF document with its own implementation of the PDF device and PDF interpreter. The names of the variables and calculations in the source code is very similar to how they are given in the PDF spec (http://www.adobe.com/content/dam/Adobe/en/devnet/acrobat/pdfs/pdf_reference_1-7.pdf).
 
@@ -34,26 +36,30 @@ on_the_translation_of_languages_from_left_to_right.pdf
 
 The program follows this procedure:
 
-1. Look into every text object in the first page of a PDF document
+1. Look into every text object in the first page (or given page with --page-number) of a PDF document
 
-2. If the font and font size is same in consequent text objects, group their content as one
+2. If the font and font size is the same in consequent text objects, group their content as one
 
-3. Apply the algorithm, see below.
+3. Apply the selected algorithm to extract the title, see below.
 
-The assumption is that the title of the document is probably the text having the largest (or second largest etc.) font size in the first page and the one most close to the top of the page.
+The assumption is that the title of the document is probably the text having the largest (or second largest etc.) font size (possibly in the first page) and the one most close to the top of the page.
 
 One problem is that not all documents uses space character between the words, so it is difficult to find word boundaries if space is not used. There is a recovery procedure for this, that may work.
 
-It is possible that PDF has a character that does not exist in the font, in that case you receive an exception, and you can use the `--replace-missing-char` option to eliminate this issue.
+It is possible that PDF has a character that does not exist in the font, in that case you will receive an error, and you can use the `--replace-missing-char` option to eliminate this problem.
 
 Sometimes the found title has a strange case (first letter is small but last is big etc.), this can be corrected with `-t` option.
+
+The title may include a ligature (single character/glyph used for multiple characters/glyphs). Starting with 0.12, the latin ligatures defined in Unicode (ff, fi, fl, ffi, ffl, ft, st) is converted to individual characters (e.g. fi ligature is changed to f and i characters). This behavior can be disabled with `--do-not-convert-ligatures`. The ligatures of other languages defined in Unicode (Armenian and Hebrew) are not converted.
 
 ## Algorithms
 
 There are three algorithms at the moment:
 
 - original: finds the maximum font size, then finds the upmost (minimum Y) blocks with this font size and joins them.
+
 - max2: finds the maximum font size, then first adds the block with maximum font size, then the second maximum size, then continues adding either of them until a block with different font size is found. the block order is the natural order in the pdf, no x-y sorting is performed.
+
 - eliot: similar to original but can merge blocks having arbitrary number of font sizes ordered by size. the block order is y first then x. the font sizes to use are provided with --eliot-tfs option, this is the index of font sizes from the largest to the smallest, so --eliot-tfs 0,1 means the largest and the second largest fonts.
 
 Algorithms are selected with -a option.
@@ -61,9 +67,10 @@ Algorithms are selected with -a option.
 ## Changes
 
 0.12:
-  - reorganized the project structure and files (see Additional notes for v0.12 below)
-  - fixes bugs #31, #33
+  - reorganized the project structure and files (see additional notes for v0.12 below)
+  - fixes bug #31
   - pdfminer version updated
+  - new feature: converts latin ligatures (ff, fi, fl, ffi, ffl, ft, st = Unicode FB00-FB06) to individual characters by default
 
 0.11:
   - functionally same as 0.10, including some pylint fixes.
@@ -112,13 +119,15 @@ Algorithms are selected with -a option.
     
 ## Additional notes for v0.12
 
-The expected and normal use of pdftitle is not changed. However, if you have integrated pdftitle to another project (i.e. using it as a library), there are the following changes:
+The expected and normal use of pdftitle from the command line is not changed. However, if you have integrated pdftitle to another project (i.e. using it as a library), which is not the purpose of the project, you should be aware of the following changes:
 
 - `pdftitle.py` is moved from the root folder of the project to `pdftitle` directory
-- some functionality (having their own classes) are moved into separate files (`TextOnlyDevice`, `TextOnlyInterpreter`, `TextState`)
-- verbose logging support functions are moved to `__init__.py`
-- pdftitle specific exceptions are moved and raised as PDFTitleException (was Exception)
+- some functionality in `pdftitle.py` are moved into separate files (`device.py`, `interpreter.py`, `logging.py`)
+- pdftitle specific exceptions are moved and raised as PDFTitleException (it was Exception before)
 - global variables are removed, thus the signature of `get_title_from_file` and `get_title_from_io` functions are changed to include the parameters (fixes #33)
+- `get_title_from_io` method is splitted into multiple methods (one method for each algorithm etc.), but these are not supposed to be used publicly (all are `__` prefixed)
 - `get_title_from_io` and `get_title_from_file` are also imported in `__init__.py`
 - running pdftitle command only handles PDFTitleException gracefully (prints stack trace and exits with non-zero error code). it was handling Exception gracefully before.
 - type hints are added for public methods
+- most if not all string formatting is converted to f-strings 
+- title case and ligature conversion is not performed in `get_title_from_{file, io}` methods. `title.title()` or `pdftitle.convert_ligatures(title)` methods should be called explicitly afterwards.
