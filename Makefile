@@ -1,10 +1,10 @@
 
-pylint:
+run_checks:
+	black --check pdftitle
 	pylint pdftitle
 
-sdist:
-	rm -rf dist
-	python setup.py sdist
+run_cli_tests:
+	cd cli_tests && bash test.sh
 
 upload:
 	rm -rf dist
