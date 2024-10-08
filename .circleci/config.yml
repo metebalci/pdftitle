@@ -8,5 +8,7 @@ jobs:
       - checkout
       - run: pip install -r requirements.txt
       - run: pip install pylint
+      - run: pip install black
       - run: pip install -e .
-      - run: make test
+      - run: make run_checks
+      - run: make run_tests
