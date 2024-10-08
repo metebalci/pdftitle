@@ -195,7 +195,7 @@ def __retrieve_spaces(
         p += 1
 
 
-def __convert_ligatures(text: str) -> str:
+def convert_ligatures(text: str) -> str:
     """
     converts latin ligatures (ff, fi, fl, ffi, ffl, ft, st) to individual chars
     see: Unicode Alphabetic Presentation Forms
@@ -323,6 +323,7 @@ def run() -> None:
             + "font size",
             required=False,
             default="original",
+            choices=["original", "max2", "eliot"],
         )
         parser.add_argument(
             "--replace-missing-char",
@@ -346,7 +347,7 @@ def run() -> None:
             "-t",
             "--title-case",
             action="store_true",
-            help="modify the case of final title to be " + "title case",
+            help="modify the case of final title to be title case",
             default=False,
         )
         parser.add_argument(
@@ -402,7 +403,7 @@ def run() -> None:
             title = title.title()
 
         if not args.do_not_convert_ligatures:
-            title = __convert_ligatures(title)
+            title = convert_ligatures(title)
 
         # If the user wants to change the name of the file
         if args.change_name:
