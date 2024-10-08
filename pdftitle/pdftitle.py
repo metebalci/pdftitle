@@ -1,182 +1,223 @@
-# pylint: disable=missing-module-docstring
-# pylint: disable=missing-function-docstring
-# pylint: disable=missing-class-docstring
-# pylint: disable=invalid-name
-# pylint: disable=consider-using-f-string
+"""pdftitle"""
 import argparse
-from io import StringIO
+import io
 import os
 import string
-import sys
 import traceback
-from typing import Optional
+from typing import Optional, List
 
-from . import set_verbose, is_verbose, verbose
-from .PDFTitleException import PDFTitleException
-from .TextOnlyDevice import TextOnlyDevice
-from .TextOnlyInterpreter import TextOnlyInterpreter
-
-from pdfminer import utils
-from pdfminer.pdfparser import PDFParser
-from pdfminer.pdfdocument import PDFDocument
-from pdfminer.pdfpage import PDFPage
-from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.converter import TextConverter
 from pdfminer.layout import LAParams
+from pdfminer.pdfdevice import PDFDevice
+from pdfminer.pdfdocument import PDFDocument
+from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
+from pdfminer.pdfpage import PDFPage
+from pdfminer.pdfparser import PDFParser
+
+from .logging import logger, verbose
+from .exceptions import PDFTitleException
+from .device import TextOnlyDevice
+from .interpreter import TextOnlyInterpreter
+
+def __get_title_by_original_algorithm(
+        device:PDFDevice) -> str:
+    # find max font size
+    max_tfs = max(device.blocks, key=lambda x: x[1])[1]
+    verbose(f'max_tfs: {max_tfs}')
+    # find max blocks with max font size
+    max_blocks = list(filter(lambda x: x[1] == max_tfs, device.blocks))
+    # find the one with the highest y coordinate
+    # this is the most close to top
+    max_y = max(max_blocks, key=lambda x: x[3])[3]
+    verbose(f'max_y: {max_y}')
+    found_blocks = list(filter(lambda x: x[3] == max_y, max_blocks))
+    verbose('found blocks')
+
+    if logger.is_verbose():
+        for block in found_blocks:
+            verbose(block)
+
+    block = found_blocks[0]
+    title = ''.join(block[4]).strip()
+    return title
+
+
+def __get_title_by_max2_algorithm(
+        device:PDFDevice) -> str:
+    # find max font size
+    all_tfs = sorted(list(map(lambda x: x[1], device.blocks)), reverse=True)
+    max_tfs = all_tfs[0]
+    verbose(f'max_tfs: {max_tfs}')
+    selected_blocks = []
+    max2_tfs = -1
+    for block in device.blocks:
+        if max2_tfs == -1:
+            if block[1] == max_tfs:
+                selected_blocks.append(block)
+            elif len(selected_blocks) > 0: # max is added
+                selected_blocks.append(block)
+                max2_tfs = block[1]
+        else:
+            if block[1] == max_tfs or block[1] == max2_tfs:
+                selected_blocks.append(block)
+            else:
+                break
+
+    verbose('selected blocks')
+    if logger.is_verbose():
+        for block in selected_blocks:
+            verbose(block)
+
+    title = []
+    for block in selected_blocks:
+        title.append(''.join(block[4]))
+
+    title = ''.join(title)
+    return title
+
+
+def __get_title_by_eliot_algorithm(
+        device:PDFDevice,
+        eliot_tfs:List[int]) -> str:
+    verbose(f'eliot-tfs: {eliot_tfs}')
+    # get all font sizes
+    all_tfs = sorted(set(map(lambda x: x[1], device.blocks)), reverse=True)
+    verbose(f'all_tfs: {all_tfs}')
+    selected_blocks = []
+    for tfs_index in eliot_tfs:
+        current_tfs_index = all_tfs[tfs_index]
+        for block in device.blocks:
+            if block[1] == current_tfs_index:
+                selected_blocks.append(block)
+
+    # sort the selected blocks
+    # y min first, then x min if y min is the same
+    selected_blocks = sorted(
+            selected_blocks,
+            key=lambda block:(-block[3], block[2]))
+
+    if logger.is_verbose():
+        for block in selected_blocks:
+            verbose(block)
+
+    title = []
+    for block in selected_blocks:
+        title.append(''.join(block[4]))
+
+    title = ''.join(title)
+    return title
+
+# pylint: disable=too-many-locals
+def __get_pdfdevice(
+        pdf_file:io.BufferedReader,
+        page_number:int,
+        replace_missing_char:Optional[str]):
+    parser = PDFParser(pdf_file)
+    # if pdf is protected with a pwd, 2nd param here is password
+    doc = PDFDocument(parser)
+    # pdf may not allow extraction
+    if not doc.is_extractable:
+        raise PDFTitleException('PDF does not allow extraction')
+
+    resource_manager = PDFResourceManager()
+    device = TextOnlyDevice(resource_manager, replace_missing_char)
+    interpreter = TextOnlyInterpreter(resource_manager, device)
+
+    first_page = io.StringIO()
+    converter = TextConverter(
+            resource_manager,
+            first_page,
+            laparams=LAParams())
+    page_interpreter = PDFPageInterpreter(resource_manager, converter)
+
+    current_page_number = 0
+
+    # list objects in verbose mode
+    if logger.is_verbose():
+        for xref in doc.xrefs:
+            for objid in xref.get_objids():
+                obj = doc.getobj(objid)
+                if isinstance(obj, dict):
+                    verbose(f'{objid}: {obj.get("Type")} {obj}')
+                elif isinstance(obj, list):
+                    verbose('{objid}: {obj}')
+                else:
+                    verbose('{objid}: {obj}')
+
+    for page in PDFPage.create_pages(doc):
+        current_page_number = current_page_number + 1
+        verbose(f'page {current_page_number}')
+        if current_page_number == page_number:
+            verbose(f'processing page {current_page_number}')
+            interpreter.process_page(page)
+            page_interpreter.process_page(page)
+            current_page_number = -1
+            break
+
+    if current_page_number == 0:
+        raise PDFTitleException('file has no pages')
+
+    if current_page_number > 0:
+        raise PDFTitleException('specified page does not exist')
+
+    converter.close()
+    first_page_text = first_page.getvalue()
+    first_page.close()
+    device.recover_last_paragraph()
+
+    return device, first_page_text
 
 
 def get_title_from_io(
-        pdf_file_raw,
+        pdf_file:io.BufferedReader,
         page_number:int,
         replace_missing_char:Optional[str],
         algorithm:str,
-        eliot_tfs:Optional[str]) -> str:
-    parser = PDFParser(pdf_file_raw)
-    # if pdf is protected with a pwd, 2nd param here is password
-    doc = PDFDocument(parser)
+        eliot_tfs:str) -> str:
+    """get_title_from_io"""
 
-    # pdf may not allow extraction
-    # pylint: disable=no-else-return
-    if doc.is_extractable:
-        rm = PDFResourceManager()
-        dev = TextOnlyDevice(rm, replace_missing_char)
-        interpreter = TextOnlyInterpreter(rm, dev)
+    device, first_page_text = __get_pdfdevice(
+            pdf_file,
+            page_number,
+            replace_missing_char)
 
-        first_page = StringIO()
-        converter = TextConverter(rm, first_page, laparams=LAParams())
-        page_interpreter = PDFPageInterpreter(rm, converter)
+    verbose('all blocks')
 
-        current_page_number = 0
+    if logger.is_verbose():
+        for block in device.blocks:
+            verbose(block)
 
-        # list objects in verbose mode
-        if is_verbose():
-            for xref in doc.xrefs:
-                for objid in xref.get_objids():
-                    obj = doc.getobj(objid)
-                    if isinstance(obj, dict):
-                        verbose('%s: %s %s' % (objid, obj.get('Type'), obj))
-                    elif isinstance(obj, list):
-                        verbose('%s: %s' % (objid, obj))
-                    else:
-                        verbose('%s: %s' % (objid, obj))
+    verbose(f'algo: {algorithm}')
 
-        for page in PDFPage.create_pages(doc):
-            current_page_number = current_page_number + 1
-            verbose("page", current_page_number)
-            if current_page_number == page_number:
-                verbose("processing page", current_page_number)
-                interpreter.process_page(page)
-                page_interpreter.process_page(page)
-                current_page_number = -1
-                break
+    if algorithm == 'original':
+        title = __get_title_by_original_algorithm(device)
 
-        if current_page_number == 0:
-            raise PDFTitleException("file has no pages")
+    elif algorithm == "max2":
+        title = __get_title_by_max2_algorithm(device)
 
-        if current_page_number > 0:
-            raise PDFTitleException("specified page does not exist")
+    elif algorithm == 'eliot':
+        title = __get_title_by_eliot_algorithm(device, eliot_tfs)
 
-        converter.close()
-        first_page_text = first_page.getvalue()
-        first_page.close()
-        dev.recover_last_paragraph()
-        verbose('all blocks')
-
-        for b in dev.blocks:
-            verbose(b)
-
-        verbose('algo: %s' % algorithm)
-        if algorithm == "original":
-            # find max font size
-            max_tfs = max(dev.blocks, key=lambda x: x[1])[1]
-            verbose('max_tfs: ', max_tfs)
-            # find max blocks with max font size
-            max_blocks = list(filter(lambda x: x[1] == max_tfs, dev.blocks))
-            # find the one with the highest y coordinate
-            # this is the most close to top
-            max_y = max(max_blocks, key=lambda x: x[3])[3]
-            verbose('max_y: ', max_y)
-            found_blocks = list(filter(lambda x: x[3] == max_y, max_blocks))
-            verbose('found blocks')
-
-            for b in found_blocks:
-                verbose(b)
-            block = found_blocks[0]
-            title = ''.join(block[4]).strip()
-
-        elif algorithm == "max2":
-            # find max font size
-            all_tfs = sorted(list(map(lambda x: x[1], dev.blocks)), reverse=True)
-            max_tfs = all_tfs[0]
-            verbose('max_tfs: ', max_tfs)
-            selected_blocks = []
-            max2_tfs = -1
-            for b in dev.blocks:
-                if max2_tfs == -1:
-                    if b[1] == max_tfs:
-                        selected_blocks.append(b)
-                    elif len(selected_blocks) > 0: # max is added
-                        selected_blocks.append(b)
-                        max2_tfs = b[1]
-                else:
-                    if b[1] == max_tfs or b[1] == max2_tfs:
-                        selected_blocks.append(b)
-                    else:
-                        break
-
-            for b in selected_blocks:
-                verbose(b)
-
-            title = []
-            for b in selected_blocks:
-                title.append(''.join(b[4]))
-            title = ''.join(title)
-
-        elif algorithm == 'eliot':
-            verbose('eliot-tfs: %s' % eliot_tfs)
-            # get all font sizes
-            all_tfs = sorted(set(map(lambda x: x[1], dev.blocks)), reverse=True)
-            verbose('all_tfs: %s' % all_tfs)
-            selected_blocks = []
-            # pylint: disable=cell-var-from-loop
-            for tfs_index in eliot_tfs:
-                selected_blocks.extend(
-                    list(filter(lambda b: b[1] == all_tfs[tfs_index],
-                                dev.blocks)))
-            # sort the selected blocks
-            # y min first, then x min if y min is the same
-            selected_blocks = sorted(
-                    selected_blocks,
-                    key=lambda b:(-b[3], b[2]))
-            for b in selected_blocks:
-                verbose(b)
-            title = []
-            for b in selected_blocks:
-                title.append(''.join(b[4]))
-            title = ''.join(title)
-
-        else:
-            raise PDFTitleException("unsupported ALGO")
-
-        verbose('title before space correction: %s' % title)
-
-        # Retrieve missing spaces if needed
-        # warning: if you use eliot algorithm with multiple tfs
-        # this procedure may not work
-        if " " not in title:
-            title_with_spaces = retrieve_spaces(first_page_text, title)
-            # the procedure above may return empty string
-            # in that case, leave the title as it is
-            if len(title_with_spaces) > 0:
-                title = title_with_spaces
-
-        # Remove duplcate spaces if any are present
-        if "  " in title:
-            title = " ".join(title.split())
-
-        return title
     else:
-        raise PDFTitleException("PDF does not allow extraction")
+        raise PDFTitleException('unsupported ALGO')
+
+    verbose(f'title before space correction: {title}')
+
+    # Retrieve missing spaces if needed
+    # warning: if you use eliot algorithm with multiple tfs
+    # this procedure may not work
+    if " " not in title:
+        title_with_spaces = retrieve_spaces(first_page_text, title)
+        # the procedure above may return empty string
+        # in that case, leave the title as it is
+        if len(title_with_spaces) > 0:
+            title = title_with_spaces
+
+    # Remove duplcate spaces if any are present
+    if "  " in title:
+        title = " ".join(title.split())
+
+    return title
 
 
 def get_title_from_file(
@@ -184,10 +225,11 @@ def get_title_from_file(
         page_number:int,
         replace_missing_char:Optional[str],
         algorithm:str,
-        eliot_tfs:Optional[str]) -> str:
+        eliot_tfs:str) -> str:
+    """get_title_from_file"""
     with open(pdf_file, 'rb') as raw_file:
         return get_title_from_io(
-                raw_file, 
+                raw_file,
                 page_number,
                 replace_missing_char,
                 algorithm,
@@ -195,21 +237,21 @@ def get_title_from_file(
 
 
 def retrieve_spaces(
-        first_page, 
-        title_without_space, 
-        p=0, 
-        t=0, 
+        first_page,
+        title_without_space,
+        p=0, # pylint: disable=invalid-name
+        t=0, # pylint: disable=invalid-name
         result=""):
+    """retrieve_spaces"""
     while True:
-        verbose('p: %s, t: %s, result: %s' % (p, t, result))
+        verbose(f'p: {p}, t: {t}, result: {result}')
         # Stop condition : all the first page has been explored or
         #  we have explored all the letters of the title
 
-        # pylint: disable=no-else-return
         if (p >= len(first_page) or t >= len(title_without_space)):
             return result
 
-        elif first_page[p].lower() == title_without_space[t].lower():
+        if first_page[p].lower() == title_without_space[t].lower():
             result += first_page[p]
             t += 1
 
@@ -228,6 +270,7 @@ def retrieve_spaces(
 
 
 def run() -> None:
+    """run command line"""
     try:
         parser = argparse.ArgumentParser(
             prog='pdftitle',
@@ -250,12 +293,12 @@ def run() -> None:
                 'specified',
                 default=None)
         parser.add_argument(
-                '-c', '--change-name', 
+                '-c', '--change-name',
                 action='store_true',
                 help='change the name of the pdf file',
                 default=False)
         parser.add_argument(
-                '-t', '--title-case', 
+                '-t', '--title-case',
                 action='store_true',
                 help='modify the case of final title to be ' +
                 'title case',
@@ -281,27 +324,30 @@ def run() -> None:
                 default=1)
         args = parser.parse_args()
         # set verbose flag first
-        set_verbose(args.verbose)
+        logger.set_verbose(args.verbose)
         verbose(args)
         eliot_tfs = None
 
         if args.algo == 'eliot':
-            verbose('args.eliot_tfs: %s' % args.eliot_tfs)
+            verbose(f'args.eliot_tfs: {args.eliot_tfs}')
             eliot_tfs = args.eliot_tfs.split(',')
-            verbose('eliot_tfs: %s' % eliot_tfs)
+            verbose(f'eliot_tfs: {eliot_tfs}')
             # convert to list of ints
             eliot_tfs = list(map(int, eliot_tfs))
-            verbose('final eliot_tfs: %s' % eliot_tfs)
+            verbose(f'final eliot_tfs: {eliot_tfs}')
+
+        else:
+            eliot_tfs = [0]
 
         title = get_title_from_file(
-                args.pdf, 
+                args.pdf,
                 args.page_number,
                 args.replace_missing_char,
                 args.algo,
                 eliot_tfs)
 
         if args.title_case:
-            verbose('before title case: %s' % title)
+            verbose(f'before title case: {title}')
             title = title.title()
 
         # If no name was found, return a non-zero exit code
@@ -323,6 +369,6 @@ def run() -> None:
 
         return 0
 
-    except PDFTitleException as e:
+    except PDFTitleException:
         traceback.print_exc()
         return 1
