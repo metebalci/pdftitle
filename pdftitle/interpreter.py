@@ -1,10 +1,13 @@
 """PDFInterpreter implementation"""
 
+import logging
+
 from pdfminer import utils
 from pdfminer.pdfinterp import PDFPageInterpreter, PDFInterpreterError
 from pdfminer.psparser import literal_name
 
-from .logging import verbose_operator
+
+logger = logging.getLogger(__name__)
 
 
 class TextState:
@@ -70,199 +73,202 @@ class TextState:
 class TextOnlyInterpreter(PDFPageInterpreter):
     """PDFPageInterpreter implementation"""
 
-    def __init__(self, rsrcmgr, device):
+    def __init__(self, rsrcmgr, device, xobject_hook):
         PDFPageInterpreter.__init__(self, rsrcmgr, device)
         self.mpts = TextState()
+        self.xobject_hook = xobject_hook
 
     # omit these operators
     def do_w(self, linewidth):
-        verbose_operator("PDF OPERATOR w")
+        logger.debug("PDF OPERATOR w")
 
     def do_J(self, linecap):
-        verbose_operator("PDF OPERATOR J")
+        logger.debug("PDF OPERATOR J")
 
     def do_j(self, linejoin):
-        verbose_operator("PDF OPERATOR j")
+        logger.debug("PDF OPERATOR j")
 
     def do_M(self, miterlimit):
-        verbose_operator("PDF OPERATOR M")
+        logger.debug("PDF OPERATOR M")
 
     def do_d(self, dash, phase):
-        verbose_operator("PDF OPERATOR d")
+        logger.debug("PDF OPERATOR d")
 
     def do_ri(self, intent):
-        verbose_operator("PDF OPERATOR ri")
+        logger.debug("PDF OPERATOR ri")
 
     def do_i(self, flatness):
-        verbose_operator("PDF OPERATOR i")
+        logger.debug("PDF OPERATOR i")
 
     def do_m(self, x, y):
-        verbose_operator("PDF OPERATOR m")
+        logger.debug("PDF OPERATOR m")
 
     def do_l(self, x, y):
-        verbose_operator("PDF OPERATOR l")
+        logger.debug("PDF OPERATOR l")
 
     # pylint: disable=too-many-arguments
     def do_c(self, x1, y1, x2, y2, x3, y3):
-        verbose_operator("PDF OPERATOR c")
+        logger.debug("PDF OPERATOR c")
 
     def do_y(self, x1, y1, x3, y3):
-        verbose_operator("PDF OPERATOR y")
+        logger.debug("PDF OPERATOR y")
 
     def do_h(self):
-        verbose_operator("PDF OPERATOR h")
+        logger.debug("PDF OPERATOR h")
 
     def do_re(self, x, y, w, h):
-        verbose_operator("PDF OPERATOR re")
+        logger.debug("PDF OPERATOR re")
 
     def do_S(self):
-        verbose_operator("PDF OPERATOR S")
+        logger.debug("PDF OPERATOR S")
 
     def do_s(self):
-        verbose_operator("PDF OPERATOR s")
+        logger.debug("PDF OPERATOR s")
 
     def do_f(self):
-        verbose_operator("PDF OPERATOR f")
+        logger.debug("PDF OPERATOR f")
 
     def do_f_a(self):
-        verbose_operator("PDF OPERATOR fa")
+        logger.debug("PDF OPERATOR fa")
 
     def do_B(self):
-        verbose_operator("PDF OPERATOR B")
+        logger.debug("PDF OPERATOR B")
 
     def do_B_a(self):
-        verbose_operator("PDF OPERATOR Ba")
+        logger.debug("PDF OPERATOR Ba")
 
     def do_b(self):
-        verbose_operator("PDF OPERATOR b")
+        logger.debug("PDF OPERATOR b")
 
     def do_b_a(self):
-        verbose_operator("PDF OPERATOR ba")
+        logger.debug("PDF OPERATOR ba")
 
     def do_n(self):
-        verbose_operator("PDF OPERATOR n")
+        logger.debug("PDF OPERATOR n")
 
     def do_W(self):
-        verbose_operator("PDF OPERATOR W")
+        logger.debug("PDF OPERATOR W")
 
     def do_W_a(self):
-        verbose_operator("PDF OPERATOR Wa")
+        logger.debug("PDF OPERATOR Wa")
 
     def do_CS(self, name):
-        verbose_operator("PDF OPERATOR CS")
+        logger.debug("PDF OPERATOR CS")
 
     def do_cs(self, name):
-        verbose_operator("PDF OPERATOR cs")
+        logger.debug("PDF OPERATOR cs")
 
     def do_G(self, gray):
-        verbose_operator("PDF OPERATOR G")
+        logger.debug("PDF OPERATOR G")
 
     def do_g(self, gray):
-        verbose_operator("PDF OPERATOR g")
+        logger.debug("PDF OPERATOR g")
 
     def do_RG(self, r, g, b):
-        verbose_operator("PDF OPERATOR RG")
+        logger.debug("PDF OPERATOR RG")
 
     def do_rg(self, r, g, b):
-        verbose_operator("PDF OPERATOR rg")
+        logger.debug("PDF OPERATOR rg")
 
     def do_K(self, c, m, y, k):
-        verbose_operator("PDF OPERATOR K")
+        logger.debug("PDF OPERATOR K")
 
     def do_k(self, c, m, y, k):
-        verbose_operator("PDF OPERATOR k")
+        logger.debug("PDF OPERATOR k")
 
     def do_SCN(self):
-        verbose_operator("PDF OPERATOR SCN")
+        logger.debug("PDF OPERATOR SCN")
 
     def do_scn(self):
-        verbose_operator("PDF OPERATOR scn")
+        logger.debug("PDF OPERATOR scn")
 
     def do_SC(self):
-        verbose_operator("PDF OPERATOR SC")
+        logger.debug("PDF OPERATOR SC")
 
     def do_sc(self):
-        verbose_operator("PDF OPERATOR sc")
+        logger.debug("PDF OPERATOR sc")
 
     def do_sh(self, name):
-        verbose_operator("PDF OPERATOR sh")
+        logger.debug("PDF OPERATOR sh")
 
     def do_EI(self, obj):
-        verbose_operator("PDF OPERATOR EI")
+        logger.debug("PDF OPERATOR EI")
 
     def do_Do(self, xobjid_arg):
-        verbose_operator(f"PDF OPERATOR Do: xobjid={xobjid_arg}")
+        logger.debug("PDF OPERATOR Do: xobjid=%s", xobjid_arg)
+        if self.xobject_hook is not None:
+            self.xobject_hook(xobjid_arg)
 
     # text object begin/end
     def do_BT(self):
-        verbose_operator("PDF OPERATOR BT")
+        logger.debug("PDF OPERATOR BT")
         self.mpts.on_BT()
 
     def do_ET(self):
-        verbose_operator("PDF OPERATOR ET")
+        logger.debug("PDF OPERATOR ET")
         self.mpts.on_ET()
 
     # text state operators
     def do_Tc(self, space):
-        verbose_operator(f"PDF OPERATOR Tc: space={space}")
+        logger.debug("PDF OPERATOR Tc: space=%s", space)
         self.mpts.Tc = space
 
     def do_Tw(self, space):
-        verbose_operator(f"PDF OPERATOR Tw: space={space}")
+        logger.debug("PDF OPERATOR Tw: space=%s", space)
         self.mpts.Tw = space
 
     def do_Tz(self, scale):
-        verbose_operator(f"PDF OPERATOR Tz: scale={scale}")
+        logger.debug("PDF OPERATOR Tz: scale=%s", scale)
         self.mpts.Th = scale * 0.01
 
     def do_TL(self, leading):
-        verbose_operator(f"PDF OPERATOR TL: leading={leading}")
+        logger.debug("PDF OPERATOR TL: leading=%s", leading)
         self.mpts.Tl = leading
 
     def do_Tf(self, fontid, fontsize):
-        verbose_operator(f"PDF OPERATOR Tf: fontid={fontid}, " + "fontsize={fontsize}")
+        logger.debug("PDF OPERATOR Tf: fontid=%s, fontsize=%s", fontid, fontsize)
         try:
             self.mpts.Tf = self.fontmap[literal_name(fontid)]
-            verbose_operator(f"font={self.mpts.Tf.fontname}")
+            logger.debug("font=%s", self.mpts.Tf.fontname)
             self.mpts.Tfs = fontsize
         except KeyError as key_error:
             raise PDFInterpreterError(f"Undefined Font id: {fontid}") from key_error
 
     def do_Tr(self, render):
-        verbose_operator(f"PDF OPERATOR Tr: render={render}")
+        logger.debug("PDF OPERATOR Tr: render=%s", render)
         self.mpts.Tmode = render
 
     def do_Ts(self, rise):
-        verbose_operator(f"PDF OPERATOR Ts: rise={rise}")
+        logger.debug("PDF OPERATOR Ts: rise=%s", rise)
         self.mpts.Trise = rise
 
     # text-move operators
 
     def do_Td(self, tx, ty):
-        verbose_operator(f"PDF OPERATOR Td: tx={tx}, ty={ty}")
+        logger.debug("PDF OPERATOR Td: tx=%s, ty=%s", tx, ty)
         self.mpts.Tlm = utils.translate_matrix(self.mpts.Tlm, (tx, ty))
         self.mpts.Tm = self.mpts.Tlm
 
     def do_TD(self, tx, ty):
-        verbose_operator(f"PDF OPERATOR TD: tx={tx}, ty={ty}")
+        logger.debug("PDF OPERATOR TD: tx=%s, ty=%s", tx, ty)
         self.do_TL(-ty)
         self.do_Td(tx, ty)
 
     def do_Tm(self, a, b, c, d, e, f):
-        verbose_operator(f"PDF OPERATOR Tm: matrix={a}, {b}, {c}. {d}, {e}, {f}")
+        logger.debug("PDF OPERATOR Tm: matrix=%s, %s, %s, %s, %s, %s", a, b, c, d, e, f)
         self.mpts.Tlm = (a, b, c, d, e, f)
         self.mpts.Tm = self.mpts.Tlm
 
     # T*
     def do_T_a(self):
-        verbose_operator("PDF OPERATOR T*")
+        logger.debug("PDF OPERATOR T*")
         self.do_Td(0, self.mpts.Tl)
 
     # text-showing operators
 
     # show a string
     def do_Tj(self, s):
-        verbose_operator(f"PDF operator Tj: s={s}")
+        logger.debug("PDF operator Tj: s=%s", s)
         self.do_TJ([s])
 
     # ' quote
@@ -271,7 +277,7 @@ class TextOnlyInterpreter(PDFPageInterpreter):
     # T*
     # string Tj
     def do__q(self, s):
-        verbose_operator(f"PDF operator q: s={s}")
+        logger.debug("PDF operator q: s=%s", s)
         self.do_T_a()
         self.do_Tj(s)
 
@@ -283,7 +289,7 @@ class TextOnlyInterpreter(PDFPageInterpreter):
     # ac Tc
     # string '
     def do__w(self, aw, ac, s):
-        verbose_operator(f'PDF OPERATOR ": aw={aw}, ac={ac}, s={s}')
+        logger.debug('PDF OPERATOR ": aw=%s, ac=%s, s=%s', aw, ac, s)
         self.do_Tw(aw)
         self.do_Tc(ac)
         self.do__q(s)
@@ -293,5 +299,5 @@ class TextOnlyInterpreter(PDFPageInterpreter):
     # if string, it is the string to show
     # if number, it is the number to adjust text position, it translates Tm
     def do_TJ(self, seq):
-        verbose_operator(f"PDF OPERATOR TJ: seq={seq}")
+        logger.debug("PDF OPERATOR TJ: seq=%s", seq)
         self.device.process_string(self.mpts, seq)

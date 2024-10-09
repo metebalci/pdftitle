@@ -2,6 +2,7 @@
 
 import argparse
 import io
+import logging
 import os
 import string
 import traceback
@@ -16,28 +17,34 @@ from pdfminer.pdfpage import PDFPage
 from pdfminer.pdfparser import PDFParser
 
 from .constants import ALGO_ORIGINAL, ALGO_MAX2, ALGO_ELIOT
-from .logging import logger, verbose
 from .exceptions import PDFTitleException
 from .device import TextOnlyDevice
 from .interpreter import TextOnlyInterpreter
 
 
+logger = logging.getLogger(__name__)
+__xobjids = []
+
+
+def __xobject_hook(xobjid_args):
+    __xobjids.append(xobjid_args)
+
+
 def __get_title_by_original_algorithm(device: PDFDevice) -> str:
     # find max font size
     max_tfs = max(device.blocks, key=lambda x: x[1])[1]
-    verbose(f"max_tfs: {max_tfs}")
+    logger.info("max_tfs: %s", max_tfs)
     # find max blocks with max font size
     max_blocks = list(filter(lambda x: x[1] == max_tfs, device.blocks))
     # find the one with the highest y coordinate
     # this is the most close to top
     max_y = max(max_blocks, key=lambda x: x[3])[3]
-    verbose(f"max_y: {max_y}")
+    logger.info("max_y: %s", max_y)
     found_blocks = list(filter(lambda x: x[3] == max_y, max_blocks))
-    verbose("found blocks")
+    logger.info("found blocks")
 
-    if logger.is_verbose():
-        for block in found_blocks:
-            verbose(block)
+    for block in found_blocks:
+        logger.info(block)
 
     block = found_blocks[0]
     title = "".join(block[4]).strip()
@@ -48,7 +55,7 @@ def __get_title_by_max2_algorithm(device: PDFDevice) -> str:
     # find max font size
     all_tfs = sorted(list(map(lambda x: x[1], device.blocks)), reverse=True)
     max_tfs = all_tfs[0]
-    verbose(f"max_tfs: {max_tfs}")
+    logger.info("max_tfs: %s", max_tfs)
     selected_blocks = []
     max2_tfs = -1
     for block in device.blocks:
@@ -64,10 +71,9 @@ def __get_title_by_max2_algorithm(device: PDFDevice) -> str:
             else:
                 break
 
-    verbose("selected blocks")
-    if logger.is_verbose():
-        for block in selected_blocks:
-            verbose(block)
+    logger.info("selected blocks")
+    for block in selected_blocks:
+        logger.info(block)
 
     title = []
     for block in selected_blocks:
@@ -78,10 +84,10 @@ def __get_title_by_max2_algorithm(device: PDFDevice) -> str:
 
 
 def __get_title_by_eliot_algorithm(device: PDFDevice, eliot_tfs: List[int]) -> str:
-    verbose(f"eliot-tfs: {eliot_tfs}")
+    logger.info("eliot-tfs: %s", eliot_tfs)
     # get all font sizes
     all_tfs = sorted(set(map(lambda x: x[1], device.blocks)), reverse=True)
-    verbose(f"all_tfs: {all_tfs}")
+    logger.info("all_tfs: %s", all_tfs)
     selected_blocks = []
     for tfs_index in eliot_tfs:
         current_tfs_index = all_tfs[tfs_index]
@@ -93,9 +99,8 @@ def __get_title_by_eliot_algorithm(device: PDFDevice, eliot_tfs: List[int]) -> s
     # y min first, then x min if y min is the same
     selected_blocks = sorted(selected_blocks, key=lambda block: (-block[3], block[2]))
 
-    if logger.is_verbose():
-        for block in selected_blocks:
-            verbose(block)
+    for block in selected_blocks:
+        logger.info(block)
 
     title = []
     for block in selected_blocks:
@@ -118,7 +123,7 @@ def __get_pdfdevice(
 
     resource_manager = PDFResourceManager()
     device = TextOnlyDevice(resource_manager, replace_missing_char)
-    interpreter = TextOnlyInterpreter(resource_manager, device)
+    interpreter = TextOnlyInterpreter(resource_manager, device, __xobject_hook)
 
     first_page = io.StringIO()
     converter = TextConverter(resource_manager, first_page, laparams=LAParams())
@@ -127,22 +132,21 @@ def __get_pdfdevice(
     current_page_number = 0
 
     # list objects in verbose mode
-    if logger.is_verbose():
-        for xref in doc.xrefs:
-            for objid in xref.get_objids():
-                obj = doc.getobj(objid)
-                if isinstance(obj, dict):
-                    verbose(f'{objid}: {obj.get("Type")} {obj}')
-                elif isinstance(obj, list):
-                    verbose("{objid}: {obj}")
-                else:
-                    verbose("{objid}: {obj}")
+    for xref in doc.xrefs:
+        for objid in xref.get_objids():
+            obj = doc.getobj(objid)
+            if isinstance(obj, dict):
+                logger.info("%s: %s %s", objid, obj.get("Type"), obj)
+            elif isinstance(obj, list):
+                logger.info("%s: %s", objid, obj)
+            else:
+                logger.info("%s: %s", objid, obj)
 
     for page in PDFPage.create_pages(doc):
         current_page_number = current_page_number + 1
-        verbose(f"page {current_page_number}")
+        logger.info("page %d", current_page_number)
         if current_page_number == page_number:
-            verbose(f"processing page {current_page_number}")
+            logger.info("processing page %d", current_page_number)
             interpreter.process_page(page)
             page_interpreter.process_page(page)
             current_page_number = -1
@@ -171,7 +175,7 @@ def __retrieve_spaces(
 ):
     """retrieve_spaces"""
     while True:
-        verbose(f"p: {p}, t: {t}, result: {result}")
+        logger.debug("p: %d, t: %d, result: %s", p, t, result)
         # Stop condition : all the first page has been explored or
         #  we have explored all the letters of the title
 
@@ -241,6 +245,24 @@ def convert_ligatures(text: str) -> str:
     return "".join(converted)
 
 
+def __get_new_file_name(title: str) -> str:
+    # Change the title to a more pleasant file name
+    logger.info("title for change file name: %s", title)
+    new_name = title.lower()  # Lower case name
+    valid_chars = set(string.ascii_lowercase + string.digits + " ")
+    new_name = "".join(c for c in new_name if c in valid_chars)
+    new_name = new_name.replace(" ", "_") + ".pdf"
+    logger.info("new file name: %s", new_name)
+    return new_name
+
+
+def change_file_name(pdf_file: str, title: str) -> str:
+    """change pdf file name to title and return new name"""
+    new_name = __get_new_file_name(title)
+    os.rename(pdf_file, new_name)
+    return new_name
+
+
 def get_title_from_io(
     pdf_file: io.BufferedReader,
     page_number: int,
@@ -254,13 +276,11 @@ def get_title_from_io(
         pdf_file, page_number, replace_missing_char
     )
 
-    verbose("all blocks")
+    logger.info("all blocks")
+    for block in device.blocks:
+        logger.info(block)
 
-    if logger.is_verbose():
-        for block in device.blocks:
-            verbose(block)
-
-    verbose(f"algo: {algorithm}")
+    logger.info("algorithm: %s", algorithm)
 
     if algorithm == ALGO_ORIGINAL:
         title = __get_title_by_original_algorithm(device)
@@ -274,7 +294,7 @@ def get_title_from_io(
     else:
         raise PDFTitleException("unsupported ALGO")
 
-    verbose(f"title before space correction: {title}")
+    logger.info("title before space correction: %s", title)
 
     # Retrieve missing spaces if needed
     # warning: if you use eliot algorithm with multiple tfs
@@ -353,9 +373,9 @@ def run() -> None:
         parser.add_argument(
             "-v",
             "--verbose",
-            action="store_true",
-            help="enable verbose logging",
-            default=False,
+            action="count",
+            help="enable verbose logging, use -vv for debug logging",
+            default=0,
         )
         parser.add_argument(
             "--eliot-tfs",
@@ -373,18 +393,24 @@ def run() -> None:
             default=1,
         )
         args = parser.parse_args()
-        # set verbose flag first
-        logger.set_verbose(args.verbose)
-        verbose(args)
-        eliot_tfs = None
+        # configure logging
+        logging_level = logging.WARNING
+        if args.verbose == 1:
+            logging_level = logging.INFO
+        elif args.verbose >= 2:
+            logging_level = logging.DEBUG
+        logging.basicConfig(level=logging_level)
+        logger.info(args)
 
+        # prepare eliot_tfs
+        eliot_tfs = None
         if args.algo == ALGO_ELIOT:
-            verbose(f"args.eliot_tfs: {args.eliot_tfs}")
+            logger.info("args.eliot_tfs: %s", args.eliot_tfs)
             eliot_tfs = args.eliot_tfs.split(",")
-            verbose(f"eliot_tfs: {eliot_tfs}")
+            logger.info("eliot_tfs: %s", eliot_tfs)
             # convert to list of ints
             eliot_tfs = list(map(int, eliot_tfs))
-            verbose(f"final eliot_tfs: {eliot_tfs}")
+            logger.info("final eliot_tfs: %s", eliot_tfs)
 
         else:
             eliot_tfs = [0]
@@ -397,21 +423,21 @@ def run() -> None:
         if title is None:
             return 1
 
+        # use title case if asked for
         if args.title_case:
-            verbose(f"before title case: {title}")
+            logger.info("before title case: %s", title)
             title = title.title()
+            logger.info("after title case: %s", title)
 
+        # convert ligatures unless disabled
         if not args.do_not_convert_ligatures:
+            logger.info("before convert ligatures: %s", title)
             title = convert_ligatures(title)
+            logger.info("after convert ligatures: %s", title)
 
-        # If the user wants to change the name of the file
+        # change file name if asked for
         if args.change_name:
-            # Change the title to a more pleasant file name
-            new_name = title.lower()  # Lower case name
-            valid_chars = set(string.ascii_lowercase + string.digits + " ")
-            new_name = "".join(c for c in new_name if c in valid_chars)
-            new_name = new_name.replace(" ", "_") + ".pdf"
-            os.rename(args.pdf, new_name)
+            new_name = change_file_name(args.pdf, title)
             print(new_name)
 
         else:
@@ -421,4 +447,9 @@ def run() -> None:
 
     except PDFTitleException:
         traceback.print_exc()
+        if len(__xobjids) > 0:
+            print(
+                "PDF contains XObjects and pdftitle does not support XObjects yet. "
+                + "The reason for this error can be due to XObjects."
+            )
         return 1

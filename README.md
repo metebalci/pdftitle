@@ -122,7 +122,8 @@ Algorithms are selected with -a option.
 The expected and normal use of pdftitle from the command line is not changed. However, if you have integrated pdftitle to another project (i.e. using it as a library), which is not the purpose of the project, you should be aware of the following changes:
 
 - `pdftitle.py` is moved from the root folder of the project to `pdftitle` directory
-- some functionality in `pdftitle.py` are moved into separate files (`device.py`, `interpreter.py`, `logging.py`)
+- some functionality in `pdftitle.py` are moved into separate files (`device.py`, `interpreter.py`)
+- custom logging functionality is removed and standard logging is implemented. the logging config is initialized in `run`, thus if `get_title_from_{file, io}` is used, the logging config should be explicitly initalized beforehand.
 - pdftitle specific exceptions are moved and raised as PDFTitleException (it was Exception before)
 - global variables are removed, thus the signature of `get_title_from_file` and `get_title_from_io` functions are changed to include the parameters (fixes #33)
 - `get_title_from_io` method is splitted into multiple methods (one method for each algorithm etc.), but these are not supposed to be used publicly (all are `__` prefixed)
@@ -130,4 +131,4 @@ The expected and normal use of pdftitle from the command line is not changed. Ho
 - running pdftitle command only handles PDFTitleException gracefully (prints stack trace and exits with non-zero error code). it was handling Exception gracefully before.
 - type hints are added for public methods
 - most if not all string formatting is converted to f-strings 
-- title case and ligature conversion is not performed in `get_title_from_{file, io}` methods. `title.title()` or `pdftitle.convert_ligatures(title)` methods should be called explicitly afterwards.
+- title case, ligature conversion and changing file name are not performed in `get_title_from_{file, io}` methods. `title.title()`, `pdftitle.convert_ligatures(title)` and `pdftitle.change_file_name(pdf_file, new_name)` methods should be called explicitly afterwards.

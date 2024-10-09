@@ -1,10 +1,15 @@
 """PDFDevice implementation"""
 
+import logging
+
 from pdfminer import utils
 from pdfminer.pdfdevice import PDFDevice
 from pdfminer.pdffont import PDFUnicodeNotDefined
 
-from .logging import verbose
+from .exceptions import PDFTitleException
+
+
+logger = logging.getLogger(__name__)
 
 
 class TextOnlyDevice(PDFDevice):
@@ -25,7 +30,7 @@ class TextOnlyDevice(PDFDevice):
     def recover_last_paragraph(self):
         """recover_last_paragraph"""
         if self.current_block is None:
-            raise Exception(
+            raise PDFTitleException(
                 "current block is None, this might be a bug. "
                 + "please report it together with the pdf file"
             )
@@ -47,14 +52,14 @@ class TextOnlyDevice(PDFDevice):
 
     def process_string(self, ts, array):
         """process_string"""
-        verbose(f"SHOW STRING ts: {ts}")
-        verbose(f"SHOW STRING array: {array}")
+        logger.debug("SHOW STRING ts: %s", ts)
+        logger.debug("SHOW STRING array: %s", array)
         for obj in array:
-            verbose(f"processing obj: {obj}")
+            logger.debug("processing obj: %s", obj)
             # this comes from TJ, number translates Tm
             if utils.isnumber(obj):
                 Tj = obj
-                verbose(f"processing translation: {Tj}")
+                logger.debug("processing translation: %s", Tj)
                 # translating Tm, change tx, ty according to direction
                 if ts.Tf.is_vertical():
                     tx = 0
@@ -68,14 +73,14 @@ class TextOnlyDevice(PDFDevice):
                 # if -Tj > ts.Tf.char_width('o'):
                 #    self.draw_cid(ts, 0, force_space=True)
             else:
-                verbose("processing string")
+                logger.debug("processing string")
                 for cid in ts.Tf.decode(obj):
                     self.draw_cid(ts, cid)
 
     # pylint: disable=too-many-branches
     def draw_cid(self, ts, cid, force_space=False):
         """draw_cid"""
-        verbose("drawing cid: ", cid)
+        logger.debug("drawing cid: %s", cid)
         # see official PDF Reference 5.3.3 Text Space Details
         # fmt: off
         Trm = utils.mult_matrix(
@@ -85,7 +90,7 @@ class TextOnlyDevice(PDFDevice):
              ),
              ts.Tm)
         # fmt: on
-        verbose(f"Trm {Trm}")
+        logger.debug("Trm %s", Trm)
         # note: before v0.10, Trm[1] and Trm[2] is checked to be 0
         # and if it is not, the character omitted (return from func)
         # this is correct if only translation Trm[4,5] and
@@ -110,7 +115,7 @@ class TextOnlyDevice(PDFDevice):
                 ) from unicode_not_defined
 
         (gx, gy) = utils.apply_matrix_pt(Trm, (0, 0))
-        verbose("drawing unichar: '", unichar, "' @", gx, ",", gy)
+        logger.debug("drawing unichar: %s @%d,%d", unichar, gx, gy)
         tfs = Trm[0]
         if self.current_block is None:
             self.current_block = (ts.Tf, tfs, gx, gy, [unichar])
@@ -119,8 +124,8 @@ class TextOnlyDevice(PDFDevice):
         else:
             self.blocks.append(self.current_block)
             self.current_block = (ts.Tf, tfs, gx, gy, [unichar])
-        verbose("current block: ", self.current_block)
-        verbose("blocks: ", self.blocks)
+        logger.debug("current block: %s", self.current_block)
+        logger.debug("blocks: %s", self.blocks)
         if force_space:
             pass
         else:
