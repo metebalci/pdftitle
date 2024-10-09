@@ -11,4 +11,4 @@ jobs:
       - run: pip install black
       - run: pip install -e .
       - run: make run_checks
-      - run: make run_tests
+      - run: make run_cli_tests
