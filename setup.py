@@ -27,7 +27,8 @@ setup(
     ],
 
     keywords='pdf text extract',
-    py_modules=['pdftitle'],
+
+    packages=['pdftitle'],
     install_requires=['pdfminer.six>=20240706'],
 
     entry_points={
