@@ -132,15 +132,17 @@ def __get_pdfdevice(
     current_page_number = 0
 
     # list objects in verbose mode
+    logger.info("<<< PDF objects >>>")
     for xref in doc.xrefs:
         for objid in xref.get_objids():
             obj = doc.getobj(objid)
             if isinstance(obj, dict):
-                logger.info("%s: %s %s", objid, obj.get("Type"), obj)
-            elif isinstance(obj, list):
-                logger.info("%s: %s", objid, obj)
+                logger.info("pdfobj %s: %s %s", objid, obj.get("Type"), obj)
+
             else:
-                logger.info("%s: %s", objid, obj)
+                logger.info("pdfobj %s: %s %s", objid, type(obj).__name__, obj)
+
+    logger.info("<<< >>>")
 
     for page in PDFPage.create_pages(doc):
         current_page_number = current_page_number + 1
@@ -394,12 +396,15 @@ def run() -> None:
         )
         args = parser.parse_args()
         # configure logging
+        # set default level to warning
+        logging.basicConfig(level=logging.WARNING)
+        # set the level of `pdftitle` to what is requested
         logging_level = logging.WARNING
         if args.verbose == 1:
             logging_level = logging.INFO
         elif args.verbose >= 2:
             logging_level = logging.DEBUG
-        logging.basicConfig(level=logging_level)
+        logging.getLogger("pdftitle").setLevel(logging_level)
         logger.info(args)
 
         # prepare eliot_tfs

@@ -32,7 +32,7 @@ $ pdftitle -p knuth65.pdf -c
 on_the_translation_of_languages_from_left_to_right.pdf
 ```
 
-(Much) more info can be seen in verbose mode with `-v`.
+For debugging purposes, more info can be seen in verbose mode with `-v` (logging level INFO) or `-vv` (logging level DEBUG).
 
 The program follows this procedure:
 
@@ -71,6 +71,7 @@ Algorithms are selected with -a option.
   - fixes bug #31
   - pdfminer version updated
   - new feature: converts latin ligatures (ff, fi, fl, ffi, ffl, ft, st = Unicode FB00-FB06) to individual characters by default
+  - started using standard logging, thus the log prints go to stderr
 
 0.11:
   - functionally same as 0.10, including some pylint fixes.
