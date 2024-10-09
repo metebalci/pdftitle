@@ -64,6 +64,12 @@ There are three algorithms at the moment:
 
 Algorithms are selected with -a option.
 
+## Contributing
+
+The best way to help development is to create an issue and discuss it there first. 
+
+Unless already discussed and decided, please do not create pull requests directly. It is rare that I can merge a pull request this way.
+
 ## Changes
 
 0.12:
