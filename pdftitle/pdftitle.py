@@ -15,6 +15,7 @@ from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.pdfpage import PDFPage
 from pdfminer.pdfparser import PDFParser
 
+from .constants import ALGO_ORIGINAL, ALGO_MAX2, ALGO_ELIOT
 from .logging import logger, verbose
 from .exceptions import PDFTitleException
 from .device import TextOnlyDevice
@@ -261,13 +262,13 @@ def get_title_from_io(
 
     verbose(f"algo: {algorithm}")
 
-    if algorithm == "original":
+    if algorithm == ALGO_ORIGINAL:
         title = __get_title_by_original_algorithm(device)
 
-    elif algorithm == "max2":
+    elif algorithm == ALGO_MAX2:
         title = __get_title_by_max2_algorithm(device)
 
-    elif algorithm == "eliot":
+    elif algorithm == ALGO_ELIOT:
         title = __get_title_by_eliot_algorithm(device, eliot_tfs)
 
     else:
@@ -318,16 +319,15 @@ def run() -> None:
         parser.add_argument(
             "-a",
             "--algo",
-            help="algorithm to derive title, default is "
-            + "original that finds the text with largest "
-            + "font size",
+            help="algorithm to derive title, default is original that finds "
+            + "the text with largest font size",
             required=False,
-            default="original",
-            choices=["original", "max2", "eliot"],
+            default=ALGO_ORIGINAL,
+            choices=[ALGO_ORIGINAL, ALGO_MAX2, ALGO_ELIOT],
         )
         parser.add_argument(
             "--replace-missing-char",
-            help="replace missing char with the one " + "specified",
+            help="replace missing char with the one specified",
             default=None,
         )
         parser.add_argument(
@@ -359,9 +359,8 @@ def run() -> None:
         )
         parser.add_argument(
             "--eliot-tfs",
-            help="the font size list to use for eliot "
-            + "algorithm, list separated by comma e.g. 0,1,2 ,"
-            + "default 0 (max) only",
+            help="the font size list to use for eliot algorithm, list "
+            + "separated by comma e.g. 0,1,2, default 0 (max) only",
             required=False,
             default="0",
         )
@@ -379,7 +378,7 @@ def run() -> None:
         verbose(args)
         eliot_tfs = None
 
-        if args.algo == "eliot":
+        if args.algo == ALGO_ELIOT:
             verbose(f"args.eliot_tfs: {args.eliot_tfs}")
             eliot_tfs = args.eliot_tfs.split(",")
             verbose(f"eliot_tfs: {eliot_tfs}")
