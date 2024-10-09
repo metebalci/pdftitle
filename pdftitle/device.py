@@ -39,13 +39,13 @@ class TextOnlyDevice(PDFDevice):
             self.blocks.append(self.current_block)
 
     # pdf spec, 5.3.3 text space details
-    # pylint: disable=invalid-name, no-self-use, too-many-arguments
+    # pylint: disable=invalid-name, too-many-arguments, too-many-positional-arguments
     def new_tx(self, w, Tj, Tfs, Tc, Tw, Th):
         """new_tx"""
         return ((w - Tj / 1000) * Tfs + Tc + Tw) * Th
 
     # pdf spec, 5.3.3 text space details
-    # pylint: disable=invalid-name, no-self-use, too-many-arguments
+    # pylint: disable=invalid-name, too-many-arguments, too-many-positional-arguments
     def new_ty(self, w, Tj, Tfs, Tc, Tw):
         """new_ty"""
         return (w - Tj / 1000) * Tfs + Tc + Tw
@@ -109,7 +109,7 @@ class TextOnlyDevice(PDFDevice):
             if self.missing_char:
                 unichar = self.missing_char
             else:
-                raise Exception(
+                raise PDFTitleException(
                     "PDF contains a unicode char that does not exist in the font"
                     + ", consider using --replace-missing-char option"
                 ) from unicode_not_defined

@@ -106,7 +106,7 @@ class TextOnlyInterpreter(PDFPageInterpreter):
     def do_l(self, x, y):
         logger.debug("PDF OPERATOR l")
 
-    # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-arguments, too-many-positional-arguments
     def do_c(self, x1, y1, x2, y2, x3, y3):
         logger.debug("PDF OPERATOR c")
 
@@ -254,6 +254,7 @@ class TextOnlyInterpreter(PDFPageInterpreter):
         self.do_TL(-ty)
         self.do_Td(tx, ty)
 
+    # pylint: disable=too-many-arguments, too-many-positional-arguments
     def do_Tm(self, a, b, c, d, e, f):
         logger.debug("PDF OPERATOR Tm: matrix=%s, %s, %s, %s, %s, %s", a, b, c, d, e, f)
         self.mpts.Tlm = (a, b, c, d, e, f)
