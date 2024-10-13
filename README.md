@@ -35,13 +35,13 @@ For debugging purposes, more info can be seen in verbose mode with `-v` (logging
 
 The program follows this procedure:
 
-1. If any of `--use-metadata` options are given, metadata streams (for dc:title) and/or document information dictionary (for Title) are checked. If there is a metadata entry, this is used as title and document is not checked further.
+1. If any of `--use-metadata` options are given, metadata streams (for dc:title) and/or document information dictionary (for Title) are checked. If there is a metadata entry, this is used as title and document is not checked further. See Metadata section for more information.
 
 2. Every text object in the first page (or given page with --page-number) of a PDF document is checked.
 
 3. If the font and font size is the same in consequent text objects, their content is grouped as one larger text.
 
-4. Selected algorithm is applied to extract the title. See Algorithms section below for details.
+4. Selected algorithm is applied to extract the title. See Algorithms section for more information.
 
 The assumption is that the title of the document is probably the text having the largest (or sometimes second largest etc.) font size (possibly in the first page) and it is the one most close to the top of the page.
 
@@ -70,6 +70,10 @@ Algorithms are selected with -a option.
 ## Logging
 
 Since v0.12, pdftitle uses standard python logging and prints at levels info (with -v) and debug (with -vv) to stderr by default.
+
+## Metadata
+
+PDF has two metadata options to keep the title of the document. The old method is to use the document information dictionary. The new method is to use a metadata stream. pdftitle supports both with `--use-document-information-dictionary` and `--use-metadata-stream` options. Also, both of them can be enabled by using `--use-metadata` or `-m` option, which then enables both by giving priority to the new method, metadata stream. These are not enabled by default because, to my experience, some/many/most documents do not have the actual title in the metadata but a document identifier.
 
 ## Contributing
 
