@@ -64,17 +64,30 @@ There are three algorithms at the moment:
 
 Algorithms are selected with -a option.
 
+## Logging
+
+Since v0.12, pdftitle uses standard python logging and prints at levels info (with -v) and debug (with -vv) to stderr by default.
+
 ## Contributing
 
 The best way to help development is to create an issue and discuss it there first. 
 
-Unless already discussed and decided, please do not create pull requests directly. It is rare that I can merge a pull request this way.
+Unless already discussed and decided, please do not create pull requests directly.
+
+## Contributors
+
+The contributors of the merged pull requests are shown in [GitHub's contributors page](https://github.com/metebalci/pdftitle/graphs/contributors).
+
+Some of the pull requests I could not merge but implemented fully or partially in different ways, so I would like to give them credit here:
+
+- [@cknoll](https://github.com/cknoll) for structuring the repo in a standard way in [#29](https://github.com/metebalci/pdftitle/pull/29)
+- [@jakob1379](https://github.com/jakob1379) for adding pylint checks in [#11](https://github.com/metebalci/pdftitle/pull/11)
 
 ## Changes
 
 0.12:
   - reorganized the project structure and files (see additional notes for v0.12 below)
-  - fixes bug #31
+  - fixes bug [#31]()
   - pdfminer version updated
   - new feature: converts latin ligatures (ff, fi, fl, ffi, ffl, ft, st = Unicode FB00-FB06) to individual characters by default
   - started using standard logging, thus the log prints go to stderr
