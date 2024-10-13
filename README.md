@@ -1,7 +1,6 @@
 # pdftitle
 
 [![CircleCI](https://circleci.com/gh/metebalci/pdftitle/tree/master.svg?style=svg)](https://circleci.com/gh/metebalci/pdftitle/tree/master)
-
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 pdftitle is a small utility to extract the title of a PDF article.
