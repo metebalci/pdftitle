@@ -20,6 +20,8 @@ from .constants import ALGO_ORIGINAL, ALGO_MAX2, ALGO_ELIOT
 from .exceptions import PDFTitleException
 from .device import TextOnlyDevice
 from .interpreter import TextOnlyInterpreter
+from .metadata import get_title_from_document_information_dictionary
+from .metadata import get_title_from_metadata_stream
 
 
 logger = logging.getLogger(__name__)
@@ -110,16 +112,14 @@ def __get_title_by_eliot_algorithm(device: PDFDevice, eliot_tfs: List[int]) -> s
     return title
 
 
+def __get_pdfdocument(pdf_file: io.BufferedReader) -> PDFDocument:
+    return PDFDocument(PDFParser(pdf_file))
+
+
 # pylint: disable=too-many-locals
 def __get_pdfdevice(
-    pdf_file: io.BufferedReader, page_number: int, replace_missing_char: Optional[str]
-):
-    parser = PDFParser(pdf_file)
-    # if pdf is protected with a pwd, 2nd param here is password
-    doc = PDFDocument(parser)
-    # pdf may not allow extraction
-    if not doc.is_extractable:
-        raise PDFTitleException("PDF does not allow extraction")
+    doc: PDFDocument, page_number: int, replace_missing_char: Optional[str]
+) -> (PDFDevice, io.StringIO):
 
     resource_manager = PDFResourceManager()
     device = TextOnlyDevice(resource_manager, replace_missing_char)
@@ -265,33 +265,77 @@ def change_file_name(pdf_file: str, title: str) -> str:
     return new_name
 
 
-def get_title_from_io(
-    pdf_file: io.BufferedReader,
-    page_number: int,
-    replace_missing_char: Optional[str],
-    algorithm: str,
-    eliot_tfs: str,
-) -> str:
-    """get_title_from_io"""
+# the defaults here are also used as defaults for command line arguments
+# this class is added to not change the signature of the methods when a new option
+# is added
+# pylint: disable=too-few-public-methods
+class GetTitleParameters:
+    """parameters used by get_title methods"""
+
+    # pylint: disable=too-many-arguments,too-many-positional-arguments
+    def __init__(
+        self,
+        use_document_information_dictionary: bool = False,
+        use_metadata_stream: bool = False,
+        page_number: int = 1,
+        replace_missing_char: Optional[str] = None,
+        algorithm: str = ALGO_ORIGINAL,
+        eliot_tfs: str = None,
+    ):
+        self.use_document_information_dictionary = use_document_information_dictionary
+        self.use_metadata_stream = use_metadata_stream
+        self.page_number = page_number
+        self.replace_missing_char = replace_missing_char
+        self.algorithm = algorithm
+        self.eliot_tfs = eliot_tfs
+
+
+def get_title_from_doc(doc: PDFDocument, params: GetTitleParameters) -> Optional[str]:
+    """get_title_from_doc"""
+
+    metadata_stream_title = get_title_from_metadata_stream(doc)
+    logger.debug("dc:title in metadata streams: %s", metadata_stream_title)
+
+    document_info_dict_title = get_title_from_document_information_dictionary(doc)
+    logger.debug(
+        "Title in document information dictionary: %s", document_info_dict_title
+    )
+
+    # metadata streams are the current method
+    if params.use_metadata_stream and metadata_stream_title is not None:
+        logger.info("using the title from metadata stream")
+        return metadata_stream_title
+
+    # using document information dictionary is depreceated for title
+    if (
+        params.use_document_information_dictionary
+        and document_info_dict_title is not None
+    ):
+        logger.info("using the title from document information dictionary")
+        return document_info_dict_title
+
+    # pdf may not allow extraction
+    if not doc.is_extractable:
+        raise PDFTitleException("PDF does not allow extraction")
 
     device, first_page_text = __get_pdfdevice(
-        pdf_file, page_number, replace_missing_char
+        doc, params.page_number, params.replace_missing_char
     )
 
     logger.info("all blocks")
     for block in device.blocks:
         logger.info(block)
 
-    logger.info("algorithm: %s", algorithm)
+    logger.info("algorithm: %s", params.algorithm)
 
-    if algorithm == ALGO_ORIGINAL:
+    if params.algorithm == ALGO_ORIGINAL:
         title = __get_title_by_original_algorithm(device)
 
-    elif algorithm == ALGO_MAX2:
+    elif params.algorithm == ALGO_MAX2:
         title = __get_title_by_max2_algorithm(device)
 
-    elif algorithm == ALGO_ELIOT:
-        title = __get_title_by_eliot_algorithm(device, eliot_tfs)
+    elif params.algorithm == ALGO_ELIOT:
+        title = __get_title_by_eliot_algorithm(device, params.eliot_tfs)
 
     else:
         raise PDFTitleException("unsupported ALGO")
@@ -315,23 +359,29 @@ def get_title_from_io(
     return title
 
 
+def get_title_from_io(
+    pdf_file: io.BufferedReader,
+    params: GetTitleParameters,
+) -> Optional[str]:
+    """get_title_from_io"""
+    return get_title_from_doc(__get_pdfdocument(pdf_file), params)
+
+
 def get_title_from_file(
     pdf_file: str,
-    page_number: int,
-    replace_missing_char: Optional[str],
-    algorithm: str,
-    eliot_tfs: str,
-) -> str:
+    params: GetTitleParameters,
+) -> Optional[str]:
     """get_title_from_file"""
-    with open(pdf_file, "rb") as raw_file:
-        return get_title_from_io(
-            raw_file, page_number, replace_missing_char, algorithm, eliot_tfs
-        )
+    with open(pdf_file, "rb") as file_reader:
+        return get_title_from_io(file_reader, params)
 
 
+# pylint: disable=too-many-statements
 def run() -> None:
     """run command line"""
     try:
+        # use parameters for default values to have them at a single place
+        params = GetTitleParameters()
         parser = argparse.ArgumentParser(
             prog="pdftitle",
             description="extracts the title from a PDF file.",
@@ -339,30 +389,16 @@ def run() -> None:
         )
         parser.add_argument("-p", "--pdf", help="pdf file", required=True)
         parser.add_argument(
-            "-a",
-            "--algo",
-            help="algorithm to derive title, default is original that finds "
-            + "the text with largest font size",
-            required=False,
-            default=ALGO_ORIGINAL,
-            choices=[ALGO_ORIGINAL, ALGO_MAX2, ALGO_ELIOT],
-        )
-        parser.add_argument(
-            "--replace-missing-char",
-            help="replace missing char with the one specified",
-            default=None,
+            "-c",
+            "--change-name",
+            action="store_true",
+            help="change the name of the pdf file",
+            default=False,
         )
         parser.add_argument(
             "--do-not-convert-ligatures",
             help="do not convert ligatures like fi to individual chars",
             action="store_true",
-            default=False,
-        )
-        parser.add_argument(
-            "-c",
-            "--change-name",
-            action="store_true",
-            help="change the name of the pdf file",
             default=False,
         )
         parser.add_argument(
@@ -380,11 +416,44 @@ def run() -> None:
             default=0,
         )
         parser.add_argument(
+            "-a",
+            "--algo",
+            help="algorithm to derive title, default is original that finds "
+            + "the text with largest font size",
+            required=False,
+            default=params.algorithm,
+            choices=[ALGO_ORIGINAL, ALGO_MAX2, ALGO_ELIOT],
+        )
+        parser.add_argument(
+            "--replace-missing-char",
+            help="replace missing char with the one specified",
+            default=params.replace_missing_char,
+        )
+        parser.add_argument(
+            "-m",
+            "--use-metadata",
+            help="use metadata if exists",
+            action="store_true",
+            default=False,
+        )
+        parser.add_argument(
+            "--use-document-information-dictionary",
+            help="use the title from the document information dictionary if exists",
+            action="store_true",
+            default=params.use_document_information_dictionary,
+        )
+        parser.add_argument(
+            "--use-metadata-stream",
+            help="use the title from the metadata stream if exists",
+            action="store_true",
+            default=params.use_metadata_stream,
+        )
+        parser.add_argument(
             "--eliot-tfs",
             help="the font size list to use for eliot algorithm, list "
             + "separated by comma e.g. 0,1,2, default 0 (max) only",
             required=False,
-            default="0",
+            default=params.eliot_tfs,
         )
         parser.add_argument(
             "--page-number",
@@ -392,7 +461,7 @@ def run() -> None:
             + "to extract the title from (starts from 1)",
             required=False,
             type=int,
-            default=1,
+            default=params.page_number,
         )
         args = parser.parse_args()
         # configure logging
@@ -421,8 +490,18 @@ def run() -> None:
             eliot_tfs = [0]
 
         title = get_title_from_file(
-            args.pdf, args.page_number, args.replace_missing_char, args.algo, eliot_tfs
+            args.pdf,
+            GetTitleParameters(
+                args.use_metadata or args.use_document_information_dictionary,
+                args.use_metadata or args.use_metadata_stream,
+                args.page_number,
+                args.replace_missing_char,
+                args.algo,
+                eliot_tfs,
+            ),
         )
+
+        logger.info("title: :%s", title)
 
         # If no name was found, return a non-zero exit code
         if title is None:

@@ -35,13 +35,15 @@ For debugging purposes, more info can be seen in verbose mode with `-v` (logging
 
 The program follows this procedure:
 
-1. Look into every text object in the first page (or given page with --page-number) of a PDF document
+1. If any of `--use-metadata` options are given, metadata streams (for dc:title) and/or document information dictionary (for Title) are checked. If there is a metadata entry, this is used as title and document is not checked further.
 
-2. If the font and font size is the same in consequent text objects, group their content as one
+2. Every text object in the first page (or given page with --page-number) of a PDF document is checked.
 
-3. Apply the selected algorithm to extract the title, see below.
+3. If the font and font size is the same in consequent text objects, their content is grouped as one larger text.
 
-The assumption is that the title of the document is probably the text having the largest (or second largest etc.) font size (possibly in the first page) and the one most close to the top of the page.
+4. Selected algorithm is applied to extract the title. See Algorithms section below for details.
+
+The assumption is that the title of the document is probably the text having the largest (or sometimes second largest etc.) font size (possibly in the first page) and it is the one most close to the top of the page.
 
 One problem is that not all documents uses space character between the words, so it is difficult to find word boundaries if space is not used. There is a recovery procedure for this, that may work.
 
@@ -50,6 +52,8 @@ It is possible that PDF has a character that does not exist in the font, in that
 Sometimes the found title has a strange case (first letter is small but last is big etc.), this can be corrected with `-t` option.
 
 The title may include a ligature (single character/glyph used for multiple characters/glyphs). Starting with 0.12, the latin ligatures defined in Unicode (ff, fi, fl, ffi, ffl, ft, st) is converted to individual characters (e.g. fi ligature is changed to f and i characters). This behavior can be disabled with `--do-not-convert-ligatures`. The ligatures of other languages defined in Unicode (Armenian and Hebrew) are not converted.
+
+The reason metadata is not used by default is that the title entry in metadata in many documents do not contain the actual title (but an identifier etc.).
 
 ## Algorithms
 
@@ -84,9 +88,12 @@ Some of the pull requests I could not merge but implemented fully or partially i
 
 ## Changes
 
+0.13:
+  - new feature: the use of metadata if exists. it is not enabled by default.
+
 0.12:
   - reorganized the project structure and files (see additional notes for v0.12 below)
-  - fixes bug [#31]()
+  - fixes bug #31
   - pdfminer version updated
   - new feature: converts latin ligatures (ff, fi, fl, ffi, ffl, ft, st = Unicode FB00-FB06) to individual characters by default
   - started using standard logging, thus the log prints go to stderr
@@ -136,13 +143,22 @@ Some of the pull requests I could not merge but implemented fully or partially i
   - added chardet as a dependency
   - algorithm is changed but there are problems with finding the word boundaries
     
-## Additional notes for v0.12
+## Additional Notes 
 
-The expected and normal use of pdftitle from the command line is not changed. However, if you have integrated pdftitle to another project (i.e. using it as a library), which is not the purpose of the project, you should be aware of the following changes:
+The expected and normal use of pdftitle from the command line does not change. However, if you have integrated pdftitle to another project (i.e. using it as a library), which is not the purpose of the project, you should be aware of the following changes.
+
+### v0.13
+
+- `get_title_from_doc` method can be used with PDFDocument objects
+- `GetTitleParameters` class is added to not change the signature of `get_title_from_...` methods everytime a new option is added.
+- new use_metadata parameters are added.
+- `metadata.py` containing title extraction methods from the metadata is added.
+
+### v0.12
 
 - `pdftitle.py` is moved from the root folder of the project to `pdftitle` directory
 - some functionality in `pdftitle.py` are moved into separate files (`device.py`, `interpreter.py`)
-- custom logging functionality is removed and standard logging is implemented. the logging config is initialized in `run`, thus if `get_title_from_{file, io}` is used, the logging config should be explicitly initalized beforehand.
+- custom logging functionality is removed and standard logging is implemented. the logging config is initialized in `run`, thus if `get_title_from_{file,io}` is used, the logging config should be explicitly initalized beforehand.
 - pdftitle specific exceptions are moved and raised as PDFTitleException (it was Exception before)
 - global variables are removed, thus the signature of `get_title_from_file` and `get_title_from_io` functions are changed to include the parameters (fixes #33)
 - `get_title_from_io` method is splitted into multiple methods (one method for each algorithm etc.), but these are not supposed to be used publicly (all are `__` prefixed)
