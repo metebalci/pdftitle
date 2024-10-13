@@ -6,8 +6,6 @@ jobs:
       - image: cimg/python:3.8.18
     steps:
       - checkout
-      - run: pip install pylint
-      - run: pip install black
-      - run: pip install -e .
+      - run: pip install .[dev]
       - run: make run_checks
       - run: make run_cli_tests

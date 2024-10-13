@@ -5,6 +5,7 @@
 """pdftitle"""
 
 import argparse
+from importlib.metadata import version
 import io
 import logging
 import os
@@ -20,7 +21,6 @@ from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.pdfpage import PDFPage
 from pdfminer.pdfparser import PDFParser
 
-from . import __version__
 from .constants import ALGO_ORIGINAL, ALGO_MAX2, ALGO_ELIOT
 from .exceptions import PDFTitleException
 from .device import TextOnlyDevice
@@ -392,17 +392,22 @@ def run() -> None:
             description="extracts the title from a PDF file.",
             epilog="",
         )
-        parser.add_argument("-p", "--pdf", help="pdf file", required=True)
         parser.add_argument(
             "--version",
             action="version",
-            version=f"%(prog)s {__version__}"
+            version=version("pdftitle"),
+        )
+        parser.add_argument(
+            "-p",
+            "--pdf",
+            help="pdf file to extract title",
+            required=True,
         )
         parser.add_argument(
             "-c",
             "--change-name",
             action="store_true",
-            help="change the name of the pdf file",
+            help="change the name of the pdf file to the found title",
             default=False,
         )
         parser.add_argument(
