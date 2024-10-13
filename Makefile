@@ -8,5 +8,5 @@ run_cli_tests:
 
 upload:
 	rm -rf dist
-	python setup.py sdist
-	twine upload dist/*
+	python -m build
+	python -m twine upload dist/*

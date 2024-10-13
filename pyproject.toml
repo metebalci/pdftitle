@@ -29,6 +29,7 @@ dev = [
   "setuptools >= 61.0",
   "black",
   "pylint",
+  "build",
   "twine",
   "reuse"
 ]
