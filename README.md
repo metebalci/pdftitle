@@ -35,13 +35,13 @@ For debugging purposes, more info can be seen in verbose mode with `-v` (logging
 
 The program follows this procedure:
 
-1. If any of `--use-metadata` options are given, metadata streams (for dc:title) and/or document information dictionary (for Title) are checked. If there is a metadata entry, this is used as title and document is not checked further. See Metadata section for more information.
+1. If any of `--use-metadata` options are given, metadata streams (for dc:title) and/or document information dictionary (for Title) are checked. If there is a metadata entry, this is used as title and document is not checked further. See [Metadata](#metadata) section for more information.
 
 2. Every text object in the first page (or given page with --page-number) of a PDF document is checked.
 
 3. If the font and font size is the same in consequent text objects, their content is grouped as one larger text.
 
-4. Selected algorithm is applied to extract the title. See Algorithms section for more information.
+4. Selected algorithm is applied to extract the title. See [Algorithms](#algorithms) section for more information.
 
 The assumption is that the title of the document is probably the text having the largest (or sometimes second largest etc.) font size (possibly in the first page) and it is the one most close to the top of the page.
 
@@ -67,19 +67,19 @@ There are three algorithms at the moment:
 
 Algorithms are selected with -a option.
 
-## Logging
-
-Since v0.12, pdftitle uses standard python logging and prints at levels info (with -v) and debug (with -vv) to stderr by default.
-
 ## Metadata
 
 PDF has two metadata options to keep the title of the document. The old method is to use the document information dictionary. The new method is to use a metadata stream. pdftitle supports both with `--use-document-information-dictionary` and `--use-metadata-stream` options. Also, both of them can be enabled by using `--use-metadata` or `-m` option, which then enables both by giving priority to the new method, metadata stream. These are not enabled by default because, to my experience, some/many/most documents do not have the actual title in the metadata but a document identifier.
+
+## Logging
+
+Since v0.12, pdftitle uses standard python logging and prints at levels info (with -v) and debug (with -vv) to stderr by default.
 
 ## Contributing
 
 The best way to help development is to create an issue and discuss it there first. 
 
-Unless already discussed and decided, please do not create pull requests directly.
+Unless already discussed and decided, please do not create pull requests directly, it can be difficult to integrate them.
 
 ## Contributors
 
@@ -90,84 +90,10 @@ Some of the pull requests I could not merge but implemented fully or partially i
 - [@cknoll](https://github.com/cknoll) for structuring the repo in a standard way in [#29](https://github.com/metebalci/pdftitle/pull/29)
 - [@jakob1379](https://github.com/jakob1379) for adding pylint checks in [#11](https://github.com/metebalci/pdftitle/pull/11)
 
-## Changes
+## Changelog
 
-0.13:
-  - new feature: the use of metadata if exists. it is not enabled by default.
+See [CHANGELOG.md](CHANGELOG.md).
 
-0.12:
-  - reorganized the project structure and files (see additional notes for v0.12 below)
-  - fixes bug #31
-  - pdfminer version updated
-  - new feature: converts latin ligatures (ff, fi, fl, ffi, ffl, ft, st = Unicode FB00-FB06) to individual characters by default
-  - started using standard logging, thus the log prints go to stderr
+## Development
 
-0.11:
-  - functionally same as 0.10, including some pylint fixes.
-
-0.10:
-  - --page-number argument added. Related issue is [here](https://github.com/metebalci/pdftitle/issues/22).
-  - potentially a fix implemented for some files having non-zero Trm[1] and Trm2[] elements. This change might cause different outputs than previous versions of pdftitle. This is related to the issue raised [here](https://github.com/metebalci/pdftitle/issues/24).
-  - verbose and error messages improved. 
-  - pdfminer version updated.
-
-0.9:
-  - retrieve_spaces function is made non-recursive.
-  - eliot algorithm is implemented for [this issue](https://github.com/metebalci/pdftitle/issues/18), test file is woo2019.pdf
-  - eliot-tfs option is implemented for eliot algorithm.
-  - stack trace was printed only in verbose mode, this behavior is changed and now stack trace is printed always if there is an error.
-
-0.8:
-  - make the title like title case (-t) using Python title method.
-  - pdfminer version updated.
-  - algorithm flag (-a). default is the original algorithm so no change.
-  - max2 algorithm is implemented for [this issue](https://github.com/metebalci/pdftitle/issues/15), test file is paran2010.pdf.
-
-0.7:
-  - changes and fixes for pylint based on [Jakob Guldberg Aaes](https://github.com/jakob1379)'s recommendation.
-  - no functional changes.
-
-0.6:
-  - rename file name to title (-c). Contributed by [Tommy Odland](https://github.com/tommyod).
-  - pdfminer version updated.
-
-0.5:
-  - fixed install problem with 0.4
-  - pdfminer version updated.
-
-0.4:
-  - Merged #e4bb0d6 to detect and remove duplicate spaces in the returned title. Contributed by Jakob Guldberg Aaes (https://github.com/jakob1379).
-
-0.3:
-  - Merged #f65ff4c and #f5c60c0 for identifying spaces when no space char is used. Contributed by Fabien Couthouis (https://github.com/Fabien-Couthouis).
-
-0.2:
-  - changed version string to major.minor format.
-  - pdftitle can be used as a library for a project, use get_title_from_io method
-  - added chardet as a dependency
-  - algorithm is changed but there are problems with finding the word boundaries
-    
-## Additional Notes 
-
-The expected and normal use of pdftitle from the command line does not change. However, if you have integrated pdftitle to another project (i.e. using it as a library), which is not the purpose of the project, you should be aware of the following changes.
-
-### v0.13
-
-- `get_title_from_doc` method can be used with PDFDocument objects
-- `GetTitleParameters` class is added to not change the signature of `get_title_from_...` methods everytime a new option is added.
-- new use_metadata parameters are added.
-- `metadata.py` containing title extraction methods from the metadata is added.
-
-### v0.12
-
-- `pdftitle.py` is moved from the root folder of the project to `pdftitle` directory
-- some functionality in `pdftitle.py` are moved into separate files (`device.py`, `interpreter.py`)
-- custom logging functionality is removed and standard logging is implemented. the logging config is initialized in `run`, thus if `get_title_from_{file,io}` is used, the logging config should be explicitly initalized beforehand.
-- pdftitle specific exceptions are moved and raised as PDFTitleException (it was Exception before)
-- global variables are removed, thus the signature of `get_title_from_file` and `get_title_from_io` functions are changed to include the parameters (fixes #33)
-- `get_title_from_io` method is splitted into multiple methods (one method for each algorithm etc.), but these are not supposed to be used publicly (all are `__` prefixed)
-- `get_title_from_io` and `get_title_from_file` are also imported in `__init__.py`
-- running pdftitle command only handles PDFTitleException gracefully (prints stack trace and exits with non-zero error code). it was handling Exception gracefully before.
-- type hints are added for public methods
-- most if not all string formatting is converted to f-strings 
-- title case, ligature conversion and changing file name are not performed in `get_title_from_{file, io}` methods. `title.title()`, `pdftitle.convert_ligatures(title)` and `pdftitle.change_file_name(pdf_file, new_name)` methods should be called explicitly afterwards.
+See [DEVELOPMENT.md](DEVELOPMENT.md).

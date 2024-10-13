@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2024 Mete Balci
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """pdftitle"""
 
 import argparse
@@ -16,6 +20,7 @@ from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.pdfpage import PDFPage
 from pdfminer.pdfparser import PDFParser
 
+from . import __version__
 from .constants import ALGO_ORIGINAL, ALGO_MAX2, ALGO_ELIOT
 from .exceptions import PDFTitleException
 from .device import TextOnlyDevice
@@ -388,6 +393,11 @@ def run() -> None:
             epilog="",
         )
         parser.add_argument("-p", "--pdf", help="pdf file", required=True)
+        parser.add_argument(
+            "--version",
+            action="version",
+            version=f"%(prog)s {__version__}"
+        )
         parser.add_argument(
             "-c",
             "--change-name",

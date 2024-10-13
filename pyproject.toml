@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+dynamic = ["version"]
+name = "pdftitle"
+dependencies = [
+  "pdfminer.six>=20240706",
+]
+requires-python = ">= 3.8"
+authors = [
+  {name = "Mete Balci", email = "metebalci@gmail.com"},
+]
+description = "pdftitle is a small utility to extract the title from a PDF file"
+readme = {file = "README.md", content-type = "text/markdown"}
+keywords = ["pdf", "title", "text", "extract"]
+classifiers = [
+  'Development Status :: 3 - Alpha',
+  'Environment :: Console',
+  'Intended Audience :: Science/Research',
+  'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
+  'Topic :: Utilities',
+  'Programming Language :: Python :: 3.8',
+]
+
+[project.scripts]
+pdftitle = "pdftitle:run"
+
+[project.urls]
+Homepage = "https://github.com/metebalci/pdftitle"
+Documentation = "https://github.com/metebalci/pdftitle"
+Repository = "https://github.com/metebalci/pdftitle.git"
+Issues = "https://github.com/metebalci/pdftitle/issues"
+Changelog = "https://github.com/metebalci/pdftitle/blob/master/CHANGELOG.md"
+
+[tool.setuptools]
+packages = ["pdftitle"]
+
+[tool.setuptools.dynamic]
+version = {attr = "pdftitle.__version__"}
