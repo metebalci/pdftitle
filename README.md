@@ -92,8 +92,8 @@ Some of the pull requests I could not merge but implemented fully or partially i
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md).
+See [CHANGELOG.md](https://github.com/metebalci/pdftitle/blob/master/CHANGELOG.md).
 
 ## Development
 
-See [DEVELOPMENT.md](DEVELOPMENT.md).
+See [DEVELOPMENT.md](https://github.com/metebalci/pdftitle/blob/master/DEVELOPMENT.md).
