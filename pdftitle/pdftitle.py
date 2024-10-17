@@ -30,11 +30,6 @@ from .metadata import get_title_from_metadata_stream
 
 
 logger = logging.getLogger(__name__)
-__xobjids = []
-
-
-def __xobject_hook(xobjid_args):
-    __xobjids.append(xobjid_args)
 
 
 def __get_title_by_original_algorithm(device: PDFDevice) -> str:
@@ -128,7 +123,7 @@ def __get_pdfdevice(
 
     resource_manager = PDFResourceManager()
     device = TextOnlyDevice(resource_manager, replace_missing_char)
-    interpreter = TextOnlyInterpreter(resource_manager, device, __xobject_hook)
+    interpreter = TextOnlyInterpreter(resource_manager, device)
 
     first_page = io.StringIO()
     converter = TextConverter(resource_manager, first_page, laparams=LAParams())
@@ -481,13 +476,16 @@ def run() -> None:
         args = parser.parse_args()
         # configure logging
         # set default level to warning
-        logging.basicConfig(level=logging.WARNING)
+        logging_format = '%(levelname)s/%(filename)s: %(message)s'
+        logging.basicConfig(level=logging.WARNING, format=logging_format)
         # set the level of `pdftitle` to what is requested
         logging_level = logging.WARNING
         if args.verbose == 1:
             logging_level = logging.INFO
+
         elif args.verbose >= 2:
             logging_level = logging.DEBUG
+
         logging.getLogger("pdftitle").setLevel(logging_level)
         logger.info(args)
 
@@ -546,9 +544,4 @@ def run() -> None:
 
     except PDFTitleException:
         traceback.print_exc()
-        if len(__xobjids) > 0:
-            print(
-                "PDF contains XObjects and pdftitle does not support XObjects yet. "
-                + "The reason for this error can be due to XObjects."
-            )
         return 1
