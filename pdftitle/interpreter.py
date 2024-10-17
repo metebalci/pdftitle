@@ -77,10 +77,9 @@ class TextState:
 class TextOnlyInterpreter(PDFPageInterpreter):
     """PDFPageInterpreter implementation"""
 
-    def __init__(self, rsrcmgr, device, xobject_hook):
-        PDFPageInterpreter.__init__(self, rsrcmgr, device)
+    def __init__(self, rsrcmgr, device):
+        super().__init__(rsrcmgr, device)
         self.mpts = TextState()
-        self.xobject_hook = xobject_hook
 
     # omit these operators
     def do_w(self, linewidth):
@@ -200,8 +199,9 @@ class TextOnlyInterpreter(PDFPageInterpreter):
 
     def do_Do(self, xobjid_arg):
         logger.debug("PDF OPERATOR Do: xobjid=%s", xobjid_arg)
-        if self.xobject_hook is not None:
-            self.xobject_hook(xobjid_arg)
+        # the method in the super class navigates to XObject and tries to render it
+        # thus calls the appropriate feedback methods here
+        super().do_Do(xobjid_arg)
 
     # text object begin/end
     def do_BT(self):
