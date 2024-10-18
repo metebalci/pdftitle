@@ -118,11 +118,16 @@ def __get_pdfdocument(pdf_file: io.BufferedReader) -> PDFDocument:
 
 # pylint: disable=too-many-locals
 def __get_pdfdevice(
-    doc: PDFDocument, page_number: int, replace_missing_char: Optional[str]
+    doc: PDFDocument,
+    page_number: int,
+    replace_missing_char: Optional[str],
+    translation_heuristic: bool,
 ) -> (PDFDevice, io.StringIO):
 
     resource_manager = PDFResourceManager()
-    device = TextOnlyDevice(resource_manager, replace_missing_char)
+    device = TextOnlyDevice(
+        resource_manager, replace_missing_char, translation_heuristic
+    )
     interpreter = TextOnlyInterpreter(resource_manager, device)
 
     first_page = io.StringIO()
@@ -279,6 +284,7 @@ class GetTitleParameters:
         use_metadata_stream: bool = False,
         page_number: int = 1,
         replace_missing_char: Optional[str] = None,
+        translation_heuristic: bool = False,
         algorithm: str = ALGO_ORIGINAL,
         eliot_tfs: str = None,
     ):
@@ -286,6 +292,7 @@ class GetTitleParameters:
         self.use_metadata_stream = use_metadata_stream
         self.page_number = page_number
         self.replace_missing_char = replace_missing_char
+        self.translation_heuristic = translation_heuristic
         self.algorithm = algorithm
         self.eliot_tfs = eliot_tfs
 
@@ -319,7 +326,10 @@ def get_title_from_doc(doc: PDFDocument, params: GetTitleParameters) -> Optional
         raise PDFTitleException("PDF does not allow extraction")
 
     device, first_page_text = __get_pdfdevice(
-        doc, params.page_number, params.replace_missing_char
+        doc,
+        params.page_number,
+        params.replace_missing_char,
+        params.translation_heuristic,
     )
 
     logger.info("all blocks")
@@ -473,10 +483,17 @@ def run() -> None:
             type=int,
             default=params.page_number,
         )
+        parser.add_argument(
+            "--translation-heuristic",
+            help="enable translation heuristic",
+            action="store_true",
+            required=False,
+            default=params.translation_heuristic,
+        )
         args = parser.parse_args()
         # configure logging
         # set default level to warning
-        logging_format = '%(levelname)s/%(filename)s: %(message)s'
+        logging_format = "%(levelname)s/%(filename)s: %(message)s"
         logging.basicConfig(level=logging.WARNING, format=logging_format)
         # set the level of `pdftitle` to what is requested
         logging_level = logging.WARNING
@@ -505,12 +522,15 @@ def run() -> None:
         title = get_title_from_file(
             args.pdf,
             GetTitleParameters(
-                args.use_metadata or args.use_document_information_dictionary,
-                args.use_metadata or args.use_metadata_stream,
-                args.page_number,
-                args.replace_missing_char,
-                args.algo,
-                eliot_tfs,
+                use_document_information_dictionary=(
+                    args.use_metadata or args.use_document_information_dictionary
+                ),
+                use_metadata_stream=args.use_metadata or args.use_metadata_stream,
+                page_number=args.page_number,
+                replace_missing_char=args.replace_missing_char,
+                translation_heuristic=args.translation_heuristic,
+                algorithm=args.algo,
+                eliot_tfs=eliot_tfs,
             ),
         )
 
