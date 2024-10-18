@@ -1,9 +1,7 @@
 
-run_checks:
+test:
 	black --check pdftitle
 	pylint pdftitle
-
-run_cli_tests:
 	cd cli_tests && bash test.sh
 
 upload:

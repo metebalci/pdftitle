@@ -7,5 +7,4 @@ jobs:
     steps:
       - checkout
       - run: pip install .[dev]
-      - run: make run_checks
-      - run: make run_cli_tests
+      - run: make test
