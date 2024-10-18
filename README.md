@@ -53,6 +53,8 @@ Sometimes the found title has a strange case (first letter is small but last is 
 
 The title may include a ligature (single character/glyph used for multiple characters/glyphs). Starting with 0.12, the latin ligatures defined in Unicode (ff, fi, fl, ffi, ffl, ft, st) is converted to individual characters (e.g. fi ligature is changed to f and i characters). This behavior can be disabled with `--do-not-convert-ligatures`. The ligatures of other languages defined in Unicode (Armenian and Hebrew) are not converted.
 
+There is an experimental option `--translation-heuristic` which uses the translations given to TJ operator to guess word boundaries. It sometimes works, sometimes partially works and sometimes does not work and harms the actual result.
+
 The reason metadata is not used by default is that the title entry in metadata in many documents do not contain the actual title (but an identifier etc.).
 
 ## Algorithms

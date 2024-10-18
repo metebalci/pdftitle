@@ -1,5 +1,9 @@
 # Changelog
 
+0.15:
+  - XObject contents are supported
+  - `--translation-heuristic` experimental option added
+
 0.14:
   - `--version` option added
   - build system is migrated from setup.py to pyproject.toml
