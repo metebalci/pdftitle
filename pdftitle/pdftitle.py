@@ -267,7 +267,7 @@ def change_file_name(pdf_file: str, title: str) -> str:
     """change pdf file name to title and return new name"""
     new_name = __get_new_file_name(title)
     if os.path.exists(new_name):
-        raise PDFTitleException("a file named %s already exists" % new_name)
+        raise PDFTitleException(f"a file named {new_name} already exists")
 
     os.rename(pdf_file, new_name)
     return new_name
@@ -389,7 +389,7 @@ def get_title_from_file(
         return get_title_from_io(file_reader, params)
 
 
-# pylint: disable=too-many-statements
+# pylint: disable=too-many-statements, too-many-branches
 def run() -> None:
     """run command line"""
     try:
@@ -526,7 +526,7 @@ def run() -> None:
                 if not doc.is_extractable:
                     raise PDFTitleException("PDF does not allow extraction")
 
-                device, first_page_text = __get_pdfdevice(
+                device, _ = __get_pdfdevice(
                     doc,
                     params.page_number,
                     params.replace_missing_char,
@@ -536,13 +536,12 @@ def run() -> None:
                 # this is for formatting properly the output
                 max_num_int_digits = None
                 for block in sorted(device.blocks, key=lambda x: x[1], reverse=True):
-                    font = block[0]
                     font_size = block[1]
                     if max_num_int_digits is None:
                         max_num_int_digits = max(1, len(str(int(font_size))))
                     str_array = block[4]
-                    print(("%%0%d.3f: %%s" % (4+max_num_int_digits)) % (font_size,
-                                                                        "".join(str_array).strip()))
+                    format_str = f"%0{4+max_num_int_digits}.3f: %s"
+                    print(format_str % (font_size, "".join(str_array).strip()))
 
         else:
             # prepare eliot_tfs
@@ -590,7 +589,6 @@ def run() -> None:
                 logger.info("before convert ligatures: %s", title)
                 title = convert_ligatures(title)
                 logger.info("after convert ligatures: %s", title)
-
 
             # change file name if -c is given
             if args.change_name:
