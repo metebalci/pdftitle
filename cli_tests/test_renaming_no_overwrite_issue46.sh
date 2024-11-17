@@ -1,5 +1,6 @@
 #!/bin/bash
-echo "testing: pdftitle -p test.pdf -c"
+echo "testing: pdftitle -c for not overwriting files"
+rm -f on_the_translation_of_languages_from_left_to_right.pdf
 cp knuth65.pdf test.pdf
 title=$(pdftitle -p test.pdf -c)
 if [ $? -eq 0 ]; then

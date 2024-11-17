@@ -3,7 +3,7 @@ requires = ["setuptools >= 61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-version = "0.15"
+version = "0.16"
 name = "pdftitle"
 dependencies = [
   "pdfminer.six>=20240706",

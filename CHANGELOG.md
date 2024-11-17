@@ -1,5 +1,9 @@
 # Changelog
 
+0.16:
+  - bug #46 fixed
+  - improvements in #45 implemented
+
 0.15:
   - XObject contents are supported
   - `--translation-heuristic` experimental option added
