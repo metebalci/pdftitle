@@ -1,8 +1,8 @@
 #!/bin/bash
 echo "testing: pdftitle -p metadata-sample.pdf"
 title=$(pdftitle -p metadata-sample.pdf --use-metadata-stream)
-echo "\"$title\""
 if [ $? -eq 0 ]; then
+  echo "\"$title\""
   if [ ! "$title" = "PDF Metadata Sample" ]; then
     exit 1
   fi

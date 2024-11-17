@@ -2,8 +2,8 @@
 echo "testing: pdftitle -p test.pdf -c"
 cp knuth65.pdf test.pdf
 title=$(pdftitle -p test.pdf -c)
-echo "\"$title\""
 if [ $? -eq 0 ]; then
+  echo "\"$title\""
   # title should be the new file name
   if [ ! "$title" = "on_the_translation_of_languages_from_left_to_right.pdf" ]; then
     exit 1
