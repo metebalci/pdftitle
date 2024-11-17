@@ -69,6 +69,28 @@ There are three algorithms at the moment:
 
 Algorithms are selected with -a option.
 
+## List Blocks
+
+For information, or to help using eliot algorithm, the list of blocks can be printed with `-l` option. This is supported only with default algorithm (when no `-a` provided). For example:
+
+```
+$ pdftitle -l -p knuth65.pdf
+11.194: On the Translation of Languages from Left to Right
+09.250: Mathematics Department, California Institute of Technology, Pasadena, California
+09.250: some k
+09.250: context free language, a (simple) phrase structure language, a constituent-structure language, a definable set, a BNF language, a Chomsky type 2 (or type 4) language, a push-down automaton language,
+09.250: translatable from left to right;
+08.258: (1965)
+08.258: DONALD E. KNUTtt
+08.258: There has been much recent interest in languages whose grammar is sufficiently simple that an efficient left-to-right parsing algorithm can be mechanically produced from the grammar. In this paper, we define LR(k) grammars, which are perhaps the most general ones of this type, and they provide the basis for understanding all of the special tricks which have been used in the construction of parsing algorithms for languages with simple structure, e.g. algebraic lan- guages. We give algorithms for deciding if a given grammar satisfies the LR (k) condition, for given k, and also give methods for generating recognizers for LR(k) grammars. It is shown that the problem of whether or not a grammar is LR(k) for
+08.258: is undecidable, and the paper concludes by establishing various connections between LR(k) grammars and deterministic languages. In particular, the LR(c) con- dition is a natural analogue, for grammars, of the deterministic condition, for languages. I. INTI~ODUCTION AND DEFINITIONS The word "language" will be used here to denote a set of character strings which has been variously called a
+08.258: etc. Such languages have aroused wide interest because they serve as approximate models for natural languages and computer programming languages, among others. In this paper we single out an important class of languages wl~fich will be called
+08.258: this means if we read the characters of a string from left to right, and look a given finite number of characters ahead , we are able to parse the given string without ever backing up to consider a previous decision. Such languages are particularly important in the case of com- puter programming, since this condition means a parsing algorithm can be mechanically constructed which requires an execution time at worst proportional to the length of the string being parsed. Special-purpose 607
+06.403: INFORMATION AND CONTROL 8, 607-639
+```
+
+The title is the first block (with the maximum font size). Thus, the default algorithm works fine for this pdf. The number before `:` is the font size.
+
 ## Metadata
 
 PDF has two metadata options to keep the title of the document. The old method is to use the document information dictionary. The new method is to use a metadata stream. pdftitle supports both with `--use-document-information-dictionary` and `--use-metadata-stream` options. Also, both of them can be enabled by using `--use-metadata` or `-m` option, which then enables both by giving priority to the new method, metadata stream. These are not enabled by default because, to my experience, some/many/most documents do not have the actual title in the metadata but a document identifier.

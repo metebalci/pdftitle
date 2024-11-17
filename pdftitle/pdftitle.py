@@ -266,6 +266,9 @@ def __get_new_file_name(title: str) -> str:
 def change_file_name(pdf_file: str, title: str) -> str:
     """change pdf file name to title and return new name"""
     new_name = __get_new_file_name(title)
+    if os.path.exists(new_name):
+        raise PDFTitleException("a file named %s already exists" % new_name)
+
     os.rename(pdf_file, new_name)
     return new_name
 
@@ -422,6 +425,13 @@ def run() -> None:
             default=False,
         )
         parser.add_argument(
+            "-l",
+            "--list-blocks",
+            action="store_true",
+            help="list the found blocks",
+            default=False,
+        )
+        parser.add_argument(
             "-t",
             "--title-case",
             action="store_true",
@@ -471,7 +481,7 @@ def run() -> None:
         parser.add_argument(
             "--eliot-tfs",
             help="the font size list to use for eliot algorithm, list "
-            + "separated by comma e.g. 0,1,2, default 0 (max) only",
+            + "separated by comma e.g. 0,1,2, default 0 (max)",
             required=False,
             default=params.eliot_tfs,
         )
@@ -506,59 +516,90 @@ def run() -> None:
         logging.getLogger("pdftitle").setLevel(logging_level)
         logger.info(args)
 
-        # prepare eliot_tfs
-        eliot_tfs = None
-        if args.algo == ALGO_ELIOT:
-            logger.info("args.eliot_tfs: %s", args.eliot_tfs)
-            eliot_tfs = args.eliot_tfs.split(",")
-            logger.info("eliot_tfs: %s", eliot_tfs)
-            # convert to list of ints
-            eliot_tfs = list(map(int, eliot_tfs))
-            logger.info("final eliot_tfs: %s", eliot_tfs)
+        # list blocks if -l is given
+        # this is called early because there is no need to support this with algorithms
+        # and no API function needed
+        if args.list_blocks:
+            with open(args.pdf, "rb") as pdf_file:
+                doc = __get_pdfdocument(pdf_file)
+                # pdf may not allow extraction
+                if not doc.is_extractable:
+                    raise PDFTitleException("PDF does not allow extraction")
+
+                device, first_page_text = __get_pdfdevice(
+                    doc,
+                    params.page_number,
+                    params.replace_missing_char,
+                    params.translation_heuristic,
+                )
+
+                # this is for formatting properly the output
+                max_num_int_digits = None
+                for block in sorted(device.blocks, key=lambda x: x[1], reverse=True):
+                    font = block[0]
+                    font_size = block[1]
+                    if max_num_int_digits is None:
+                        max_num_int_digits = max(1, len(str(int(font_size))))
+                    str_array = block[4]
+                    print(("%%0%d.3f: %%s" % (4+max_num_int_digits)) % (font_size,
+                                                                        "".join(str_array).strip()))
 
         else:
-            eliot_tfs = [0]
+            # prepare eliot_tfs
+            eliot_tfs = None
+            if args.algo == ALGO_ELIOT:
+                logger.info("args.eliot_tfs: %s", args.eliot_tfs)
+                eliot_tfs = args.eliot_tfs.split(",")
+                logger.info("eliot_tfs: %s", eliot_tfs)
+                # convert to list of ints
+                eliot_tfs = list(map(int, eliot_tfs))
+                logger.info("final eliot_tfs: %s", eliot_tfs)
 
-        title = get_title_from_file(
-            args.pdf,
-            GetTitleParameters(
-                use_document_information_dictionary=(
-                    args.use_metadata or args.use_document_information_dictionary
+            else:
+                eliot_tfs = [0]
+
+            title = get_title_from_file(
+                args.pdf,
+                GetTitleParameters(
+                    use_document_information_dictionary=(
+                        args.use_metadata or args.use_document_information_dictionary
+                    ),
+                    use_metadata_stream=args.use_metadata or args.use_metadata_stream,
+                    page_number=args.page_number,
+                    replace_missing_char=args.replace_missing_char,
+                    translation_heuristic=args.translation_heuristic,
+                    algorithm=args.algo,
+                    eliot_tfs=eliot_tfs,
                 ),
-                use_metadata_stream=args.use_metadata or args.use_metadata_stream,
-                page_number=args.page_number,
-                replace_missing_char=args.replace_missing_char,
-                translation_heuristic=args.translation_heuristic,
-                algorithm=args.algo,
-                eliot_tfs=eliot_tfs,
-            ),
-        )
+            )
 
-        logger.info("title: :%s", title)
+            logger.info("title: :%s", title)
 
-        # If no name was found, return a non-zero exit code
-        if title is None:
-            return 1
+            # If no name was found, return a non-zero exit code
+            if title is None:
+                return 1
 
-        # use title case if asked for
-        if args.title_case:
-            logger.info("before title case: %s", title)
-            title = title.title()
-            logger.info("after title case: %s", title)
+            # use title case if asked for
+            if args.title_case:
+                logger.info("before title case: %s", title)
+                title = title.title()
+                logger.info("after title case: %s", title)
 
-        # convert ligatures unless disabled
-        if not args.do_not_convert_ligatures:
-            logger.info("before convert ligatures: %s", title)
-            title = convert_ligatures(title)
-            logger.info("after convert ligatures: %s", title)
+            # convert ligatures unless disabled
+            if not args.do_not_convert_ligatures:
+                logger.info("before convert ligatures: %s", title)
+                title = convert_ligatures(title)
+                logger.info("after convert ligatures: %s", title)
 
-        # change file name if asked for
-        if args.change_name:
-            new_name = change_file_name(args.pdf, title)
-            print(new_name)
 
-        else:
-            print(title)
+            # change file name if -c is given
+            if args.change_name:
+                new_name = change_file_name(args.pdf, title)
+                print(new_name)
+
+            # or print title
+            else:
+                print(title)
 
         return 0
 
