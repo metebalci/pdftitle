@@ -289,7 +289,7 @@ class GetTitleParameters:
         replace_missing_char: Optional[str] = None,
         translation_heuristic: bool = False,
         algorithm: str = ALGO_ORIGINAL,
-        eliot_tfs: str = "0"
+        eliot_tfs: str = "0",
     ):
         self.use_document_information_dictionary = use_document_information_dictionary
         self.use_metadata_stream = use_metadata_stream

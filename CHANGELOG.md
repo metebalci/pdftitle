@@ -1,5 +1,8 @@
 # Changelog
 
+0.17:
+  - bug #47 fixed
+
 0.16:
   - bug #46 fixed
   - improvements in #45 implemented
