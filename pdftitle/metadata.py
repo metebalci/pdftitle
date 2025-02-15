@@ -9,6 +9,7 @@ from typing import Optional
 from xml.etree import ElementTree
 
 from pdfminer.pdfdocument import PDFDocument
+from pdfminer.encodingdb import EncodingDB
 
 from .exceptions import PDFTitleException
 
@@ -22,20 +23,56 @@ def get_title_from_document_information_dictionary(doc: PDFDocument) -> Optional
     if not exists, returns None
     """
     # doc.info = None is actually not possible
-    if doc.info is not None:
-        # pdfminer checks all trailers so adds info from every trailer to a list
-        # called doc.info
-        for info_from_one_trailer in doc.info:
-            logger.debug("document information dictionary: %s", info_from_one_trailer)
-            title = info_from_one_trailer.get("Title", None)
-            if title is not None:
-                logger.info("title found in document information dictionary: %s", title)
-                # not sure if this is always the case but I see title is bytes
-                if isinstance(title, bytes):
+    if doc.info is None:
+        return None
+
+    # pdfminer checks all trailers so adds info from every trailer to a list
+    # called doc.info
+    for info_from_one_trailer in doc.info:
+        logger.debug("document information dictionary: %s", info_from_one_trailer)
+        title = info_from_one_trailer.get("Title", None)
+        if title is not None:
+            logger.info("title found in document information dictionary: %s", title)
+            # see 7.9.2.2.1 Text string type > General
+            # title is of type text string
+            # which can be encoded as PdfDocEncoding, UTF-8 or UTF-16BE
+            if (len(title) >= 2) and (title[0] == 254) and (title[1] == 255):
+                logger.debug("title is encoded as utf-16be")
+                try:
+                    title = title.decode("utf-16")
+                except UnicodeDecodeError:
+                    logger.debug("cannot decode title as utf-16")
+                    return None
+
+            elif (
+                (len(title) >= 3)
+                and (title[0] == 239)
+                and (title[1] == 187)
+                and (title[2] == 191)
+            ):
+                logger.debug("title is encoded as utf-8")
+                try:
                     title = title.decode("utf-8")
-                # return only if it is not empty
-                if len(title.strip()) > 0:
-                    return title
+                except UnicodeDecodeError:
+                    logger.debug("cannot decode title as utf-8")
+                    return None
+
+            else:
+                logger.debug("title is encoded as PdfDocEncoding")
+                decoded_title = []
+                for b in title:
+                    c = EncodingDB.pdf2unicode.get(b, None)
+                    if c is None:
+                        logger.debug("cannot decode title as PdfDocEncoding")
+                        return None
+
+                    decoded_title.append(c)
+
+                title = "".join(decoded_title)
+
+            # return only if it is not empty
+            if len(title.strip()) > 0:
+                return title
 
     return None
 
@@ -72,7 +109,11 @@ def get_title_from_metadata_stream(doc: PDFDocument) -> Optional[str]:
         logger.debug("metadata stream: %s", metadata_stream)
         xml = metadata_stream.rawdata.decode("utf-8").strip()
         logger.debug("metadata xml: %s", xml)
-        root = ElementTree.fromstring(xml)
+        try:
+            root = ElementTree.fromstring(xml)
+        except ElementTree.ParseError:
+            logger.debug("cannot parse metadata xml")
+            return None
         logger.debug("metadata root: %s", root)
         title_elements = root.findall(".//{http://purl.org/dc/elements/1.1/}title")
         if title_elements is None or len(title_elements) == 0:

@@ -140,11 +140,12 @@ class TextOnlyDevice(PDFDevice):
         # here CTM is omitted since we are not rendering to a screen etc.
         # fmt: off
         Trm = utils.mult_matrix(
-            (ts.Tfs * ts.Th,    0,              # ,0
-             0,                 ts.Tfs,         # ,0
-             0,                 ts.Trise        # ,1
-             ),
-             ts.Tm)
+                utils.mult_matrix(
+                    (ts.Tfs * ts.Th,    0,              # ,0
+                     0,                 ts.Tfs,         # ,0
+                     0,                 ts.Trise        # ,1
+                     ), ts.Tm), self.ctm)
+
         # fmt: on
         logger.debug("Trm %s", Trm)
         # note: before v0.10, Trm[1] and Trm[2] is checked to be 0
