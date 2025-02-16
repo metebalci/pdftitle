@@ -137,7 +137,7 @@ class TextOnlyDevice(PDFDevice):
         logger.debug("drawing cid: %s", cid)
         # 9.4.4 Text space details
         # Trm text rendering matrix
-        # here CTM is omitted since we are not rendering to a screen etc.
+        # Trm = [...] * Tm * CTM
         # fmt: off
         Trm = utils.mult_matrix(
                 utils.mult_matrix(
