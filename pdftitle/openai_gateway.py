@@ -19,9 +19,12 @@ load_dotenv()
 __OPENAI_CLIENT = None
 
 try:
-    from openai import OpenAI
+    from openai import OpenAI, OpenAIError
 
-    __OPENAI_CLIENT = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+    try:
+        __OPENAI_CLIENT = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+    except OpenAIError:
+        pass
 except ImportError:
     logger.warning("openai package is not available")
 
