@@ -1,5 +1,8 @@
 # Changelog
 
+0.19:
+  - experimental OpenAI support
+
 0.18:
   - bug #49, #50, #51 fixed
 

@@ -59,7 +59,7 @@ The reason metadata is not used by default is that the title entry in metadata i
 
 ## Algorithms
 
-There are three algorithms at the moment:
+There are four algorithms at the moment:
 
 - original: finds the maximum font size, then finds the upmost (minimum Y) blocks with this font size and joins them.
 
@@ -67,7 +67,34 @@ There are three algorithms at the moment:
 
 - eliot: similar to original but can merge blocks having arbitrary number of font sizes ordered by size. the block order is y first then x. the font sizes to use are provided with --eliot-tfs option, this is the index of font sizes from the largest to the smallest, so --eliot-tfs 0,1 means the largest and the second largest fonts.
 
+- openai: lets OpenAI find the title. See the next section for more information. This is an EXPERIMENTAL feature.
+
 Algorithms are selected with -a option.
+
+### openai
+
+This method uploads the PDF document to OpenAI platform, and uses the `File Search` tool of [Assistants API](https://platform.openai.com/docs/assistants/overview). This is similar to uploading the PDF file and asking "what is the title of this PDF document?". 
+
+This algorithm is EXPERIMENTAL and probably will stay EXPERIMENTAL for a long time.
+
+Using this algorithm will incur a cost according to [OpenAI's API Pricing](https://openai.com/api/pricing/). Running this for `knuth65.pdf` uses 16265 total tokens where almost all of this is prompt/input tokens. Looking at the current pricing (as of 17.02.2025), 16265 input tokens costs ~$0.0025 (quarter of a cent). The cost of a run can be seen with `--openai-show-usage` option, which outputs the number of tokens used.
+
+The PDF file is uploaded to OpenAI platform (always with the same name `pdftitle.arg.pdf`) and deleted afterwards. A non-public PDF file should not be used with this algorithm.
+
+To use openai algorithm, `openai` python package should be manually installed (`pip install openai`) and `OPENAI_API_KEY` environment variable should be set to a valid OpenAI platform API key.
+
+The OpenAI model to use can be selected with `--openai-model` option. The default model is gpt-4o-mini.
+
+If `-vv` option is used, OpenAI response objects can be observed.
+
+The openai algorithm is called directly without checking the PDF file at all. Thus, using the Document Information Dictionary or Metadata is implicitly disabled.
+
+OpenAI API takes a few seconds to respond. For example:
+
+```
+$ pdftitle -a openai -p cli_tests/knuth65.pdf
+On the Translation of Languages from Left to Right
+```
 
 ## List Blocks
 

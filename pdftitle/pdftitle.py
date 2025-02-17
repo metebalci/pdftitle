@@ -21,12 +21,13 @@ from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.pdfpage import PDFPage
 from pdfminer.pdfparser import PDFParser
 
-from .constants import ALGO_ORIGINAL, ALGO_MAX2, ALGO_ELIOT
+from .constants import ALGO_ORIGINAL, ALGO_MAX2, ALGO_ELIOT, ALGO_OPENAI
 from .exceptions import PDFTitleException
 from .device import TextOnlyDevice
 from .interpreter import TextOnlyInterpreter
 from .metadata import get_title_from_document_information_dictionary
 from .metadata import get_title_from_metadata_stream
+from .openai_gateway import get_title_from_openai
 
 
 logger = logging.getLogger(__name__)
@@ -276,7 +277,7 @@ def change_file_name(pdf_file: str, title: str) -> str:
 # the defaults here are also used as defaults for command line arguments
 # this class is added to not change the signature of the methods when a new option
 # is added
-# pylint: disable=too-few-public-methods
+# pylint: disable=too-few-public-methods,too-many-instance-attributes
 class GetTitleParameters:
     """parameters used by get_title methods"""
 
@@ -290,6 +291,8 @@ class GetTitleParameters:
         translation_heuristic: bool = False,
         algorithm: str = ALGO_ORIGINAL,
         eliot_tfs: str = "0",
+        openai_model: str = "gpt-4o-mini",
+        openai_show_usage: bool = False,
     ):
         self.use_document_information_dictionary = use_document_information_dictionary
         self.use_metadata_stream = use_metadata_stream
@@ -298,6 +301,8 @@ class GetTitleParameters:
         self.translation_heuristic = translation_heuristic
         self.algorithm = algorithm
         self.eliot_tfs = eliot_tfs
+        self.openai_model = openai_model
+        self.openai_show_usage = openai_show_usage
 
 
 def get_title_from_doc(doc: PDFDocument, params: GetTitleParameters) -> Optional[str]:
@@ -377,6 +382,11 @@ def get_title_from_io(
     params: GetTitleParameters,
 ) -> Optional[str]:
     """get_title_from_io"""
+    if params.algorithm == ALGO_OPENAI:
+        return get_title_from_openai(
+            pdf_file.read(), params.openai_model, params.openai_show_usage
+        )
+
     return get_title_from_doc(__get_pdfdocument(pdf_file), params)
 
 
@@ -452,7 +462,23 @@ def run() -> None:
             + "the text with largest font size",
             required=False,
             default=params.algorithm,
-            choices=[ALGO_ORIGINAL, ALGO_MAX2, ALGO_ELIOT],
+            choices=[ALGO_ORIGINAL, ALGO_MAX2, ALGO_ELIOT, ALGO_OPENAI],
+        )
+        # OpenAI model name is the same as defined in OpenAI platform
+        # see: https://platform.openai.com/docs/models#current-model-aliases
+        parser.add_argument(
+            "--openai-model",
+            help=f"select the OpenAI model (default is {params.openai_model})",
+            required=False,
+            default=params.openai_model,
+            choices=["gpt-4o", "gpt-4o-mini"],
+        )
+        parser.add_argument(
+            "--openai-show-usage",
+            help="output OpenAI usage/cost before the title",
+            required=False,
+            action="store_true",
+            default=False,
         )
         parser.add_argument(
             "--replace-missing-char",
@@ -569,6 +595,8 @@ def run() -> None:
                     translation_heuristic=args.translation_heuristic,
                     algorithm=args.algo,
                     eliot_tfs=eliot_tfs,
+                    openai_model=args.openai_model,
+                    openai_show_usage=args.openai_show_usage,
                 ),
             )
 
