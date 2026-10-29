@@ -3,6 +3,17 @@
 [![CircleCI](https://circleci.com/gh/metebalci/pdftitle/tree/master.svg?style=svg)](https://circleci.com/gh/metebalci/pdftitle/tree/master)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
+> [!IMPORTANT]
+> **This project is archived and no longer maintained.**
+>
+> pdftitle finds the title with a heuristic based on font size and position. It works for many
+> scientific articles, but vision-capable AI models do this job much better: they read the
+> rendered first page the way a person does.
+>
+> The package is still available on PyPI and the heuristic algorithms still work offline. The
+> experimental `openai` algorithm uses the Assistants API, which OpenAI has deprecated, so it
+> may no longer work. Issues and pull requests will not be addressed.
+
 pdftitle is a small utility to extract the title of a PDF article.
 
 When you have some PDF articles where you cannot understand their content from their filenames, you can use this utility to extract the title and rename the files if you want. This utility does not look at the metadata of a PDF file. It is particularly suited for PDF files of scientific articles.
